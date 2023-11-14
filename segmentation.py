@@ -1,35 +1,13 @@
 from aicsimageio import AICSImage
 import numpy as np
-import ipywidgets as widgets
 from functools import partial
 from IPython.display import clear_output
 from PIL import Image
+import ipywidgets as widgets
 
-buttons = widgets.ToggleButtons(
-    options=[0,1,2, 'All'],
-    description='Speed:',
-    disabled=False,
-    button_style='', # 'success', 'info', 'warning', 'danger' or ''
-    tooltips=['Description of slow', 'Description of regular', 'Description of fast'],
-)
+from widgets import buttons, int_range, int_range_v
 
-
-
-int_range = widgets.FloatSlider(
-    value=99,
-    min=85,
-    max=100.0,
-    step=0.1,
-    description='Normalization:',
-    disabled=False,
-    continuous_update=False,
-    orientation='horizontal',
-    readout=True,
-    readout_format='.1f',
-)
-
-def load_2D(path, z_slice):
-    img = AICSImage(path)
+def load_2D(img, z_slice):
     res = []
     for i in range(3):
         res.append(img.get_image_data("ZXY", C=i)[z_slice])
@@ -37,7 +15,9 @@ def load_2D(path, z_slice):
     return out
 
 #@nb.njit(parallel=False)
-def update_image(out, percent, channel):
+def update_image(img, percent, channel, zi):
+    
+    out = load_2D(img, zi)
     
     normalize = np.percentile(out, percent, axis=(0,1))
     if channel==['All']:
@@ -52,26 +32,36 @@ def update_image(out, percent, channel):
 
     return im
 
-def on_value_change_slider(out, output2, change):
+def on_value_change_slider(img, output2, buttons, int_range_v, change):
     with output2:  
         clear_output(wait=True)
-        display(update_image(out, change['new'], [buttons.value]))
+        display(update_image(img, change['new'], buttons.value, int_range_v.value))
 
-def on_value_change_button(out, output2, change):
+def on_value_change_button(img, output2, int_range, int_range_v, change):
     with output2:  
         clear_output(wait=True)
-        display(update_image(out, int_range.value, [change['new']]))
+        display(update_image(img, int_range.value, change['new'], int_range_v.value))
 
-def show_im(path, z_slice):
-    out = load_2D(path, z_slice)
+
+def on_value_change_slider_vertical(img, output2, int_range, buttons, change):
+    with output2:  
+        clear_output(wait=True)
+        display(update_image(img, int_range.value, buttons.value, change['new']))
+
+        
+def show_im(path, z_slice=10):
+    img = AICSImage(path)
+    out = load_2D(img, z_slice)
     output2 = widgets.Output()
 
-    f = partial(on_value_change_slider, out, output2)
-    g = partial(on_value_change_button, out, output2)
+    e = partial(on_value_change_slider_vertical, img, output2, int_range, buttons)
+    f = partial(on_value_change_slider, img, output2, buttons, int_range_v)
+    g = partial(on_value_change_button, img, output2, int_range, int_range_v)
     
     int_range.observe(f, names='value')
     buttons.observe(g, names='value')
-    return widgets.VBox([buttons, int_range, output2])
+    int_range_v.observe(e, names='value')
+    return widgets.VBox([buttons, int_range, int_range_v, output2])
 
 
 def sigmoid(x):
