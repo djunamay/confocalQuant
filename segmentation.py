@@ -14,21 +14,19 @@ def load_2D(img, z_slice):
     out = np.stack(res, axis=2)    
     return out
 
-#@nb.njit(parallel=False)
+
 def update_image(img, percent, channel, zi):
     
     out = load_2D(img, zi)
     
     normalize = np.percentile(out, percent, axis=(0,1))
-    if channel==['All']:
-        im = Image.fromarray(np.clip(out.astype(np.float64)/normalize[None,None]*255.0, 0, 255).astype('uint8'))
-    else:
-        channel = set(channel)
-        all_channels = range(3)
-        temp = [x for x in all_channels if x not in channel]
-        for i in temp:
-            normalize[i] = 1e1000
-        im = Image.fromarray(np.clip(out.astype(np.float64)/normalize[None,None]*255.0, 0, 255).astype('uint8'))
+
+    channel = set(channel)
+    all_channels = range(3)
+    temp = [x for x in all_channels if x not in channel]
+    for i in temp:
+        normalize[i] = 1e1000
+    im = Image.fromarray(np.clip(out.astype(np.float64)/normalize[None,None]*255.0, 0, 255).astype('uint8'))
 
     return im
 
@@ -66,3 +64,8 @@ def show_im(path, z_slice=10):
 
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
+
+def threshold_im(array, upper_percentile, lower_percentile):
+    upper = np.percentile(array, upper_percentile)
+    lower = np.percentile(array, lower_percentile)
+    return (np.clip(array-lower, 0, upper)/upper)*255
