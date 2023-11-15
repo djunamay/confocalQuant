@@ -9,11 +9,33 @@ import ipywidgets as widgets
 #     tooltips=['Description of slow', 'Description of regular', 'Description of fast'],
 # )
 
+dropdown_soma = widgets.Dropdown(
+    options=[1],
+    value=1,
+    description='Soma:',
+    disabled=False,
+)
+
+dropdown_nuc = widgets.Dropdown(
+    options=[1],
+    value=1,
+    description='Nucleus:',
+    disabled=False,
+)
+
 buttons = widgets.SelectMultiple(
     options=[0, 1, 2, 3],
     value=[0],
     #rows=10,
-    description='Channels',
+    description='Show:',
+    disabled=False
+)
+
+buttons2 = widgets.SelectMultiple(
+    options=[0, 1, 2, 3],
+    value=[0],
+    #rows=10,
+    description='Adjust:',
     disabled=False
 )
 

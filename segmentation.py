@@ -5,7 +5,8 @@ from IPython.display import clear_output
 from PIL import Image
 import ipywidgets as widgets
 
-from widgets import buttons, upper_range, int_range_v, lower_range
+
+from widgets import buttons, upper_range, int_range_v, lower_range, dropdown_soma, dropdown_nuc, buttons2
 
 def load_2D(img, z_slice, N_channels):
     res = []
@@ -57,7 +58,13 @@ def on_value_change_slider_vertical(img, output2, lower_range, upper_range, butt
 def show_im(path, z_slice=10, N_channels=range(3)):
     img = AICSImage(path)
     
-    buttons.options = range(len(N_channels))
+    opt = range(len(N_channels))
+    buttons.options = opt
+    buttons2.options = opt
+
+    dropdown_soma.options = opt
+    dropdown_nuc.options = opt
+
     int_range_v.max = img.dims['Z'][0]
     
     output2 = widgets.Output()
@@ -71,7 +78,7 @@ def show_im(path, z_slice=10, N_channels=range(3)):
     lower_range.observe(h, names='value')
     buttons.observe(g, names='value')
     int_range_v.observe(e, names='value')
-    return widgets.VBox([buttons, upper_range, lower_range, int_range_v, output2])
+    return widgets.VBox([buttons, buttons2, upper_range, lower_range, int_range_v, dropdown_soma, dropdown_nuc, output2])
 
 
 def sigmoid(x):
