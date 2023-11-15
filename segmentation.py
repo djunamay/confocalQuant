@@ -7,7 +7,7 @@ import ipywidgets as widgets
 
 from widgets import buttons, upper_range, int_range_v, lower_range
 
-def load_2D(img, z_slice):
+def load_2D(img, z_slice, N_channels):
     res = []
     for i in range(3):
         res.append(img.get_image_data("ZXY", C=i)[z_slice])
@@ -15,9 +15,9 @@ def load_2D(img, z_slice):
     return out
 
 
-def update_image(img, lower_percentile, upper_percentile, channel, zi):
+def update_image(img, lower_percentile, upper_percentile, channel, zi, N_channels):
     
-    out = load_2D(img, zi)
+    out = load_2D(img, zi, N_channels)
 
     channel = set(channel)
     all_channels = range(3)
@@ -32,37 +32,38 @@ def update_image(img, lower_percentile, upper_percentile, channel, zi):
 
     return im
 
-def on_value_change_slider_upper(img, output2, lower_range, buttons, int_range_v, change):
+def on_value_change_slider_upper(img, output2, lower_range, buttons, int_range_v, N_channels, change):
     with output2:  
         clear_output(wait=True)
-        display(update_image(img, lower_range.value, change['new'], buttons.value, int_range_v.value))
+        display(update_image(img, lower_range.value, change['new'], buttons.value, int_range_v.value, N_channels))
         
-def on_value_change_slider_lower(img, output2, upper_range, buttons, int_range_v, change):
+def on_value_change_slider_lower(img, output2, upper_range, buttons, int_range_v, N_channels, change):
     with output2:  
         clear_output(wait=True)
-        display(update_image(img, change['new'], upper_range.value, buttons.value, int_range_v.value))
+        display(update_image(img, change['new'], upper_range.value, buttons.value, int_range_v.value, N_channels))
 
-def on_value_change_button(img, output2, lower_range, upper_range, int_range_v, change):
+def on_value_change_button(img, output2, lower_range, upper_range, int_range_v, N_channels, change):
     with output2:  
         clear_output(wait=True)
-        display(update_image(img, lower_range.value, upper_range.value, change['new'], int_range_v.value))
+        display(update_image(img, lower_range.value, upper_range.value, change['new'], int_range_v.value, N_channels))
 
 
-def on_value_change_slider_vertical(img, output2, lower_range, upper_range, buttons, change):
+def on_value_change_slider_vertical(img, output2, lower_range, upper_range, buttons, N_channels, change):
     with output2:  
         clear_output(wait=True)
-        display(update_image(img, lower_range.value, upper_range.value, buttons.value, change['new']))
+        display(update_image(img, lower_range.value, upper_range.value, buttons.value, change['new'], N_channels))
 
         
 def show_im(path, z_slice=10):
     img = AICSImage(path)
-    out = load_2D(img, z_slice)
+    N_channels = len(img.channel_names)
+    
     output2 = widgets.Output()
 
-    e = partial(on_value_change_slider_vertical, img, output2, lower_range, upper_range, buttons)
-    f = partial(on_value_change_slider_upper, img, output2, lower_range, buttons, int_range_v)
-    g = partial(on_value_change_button, img, output2, lower_range, upper_range, int_range_v)
-    h = partial(on_value_change_slider_lower, img, output2, upper_range, buttons, int_range_v)
+    e = partial(on_value_change_slider_vertical, img, output2, lower_range, upper_range, buttons, N_channels)
+    f = partial(on_value_change_slider_upper, img, output2, lower_range, buttons, int_range_v, N_channels)
+    g = partial(on_value_change_button, img, output2, lower_range, upper_range, int_range_v, N_channels)
+    h = partial(on_value_change_slider_lower, img, output2, upper_range, buttons, int_range_v, N_channels)
 
     upper_range.observe(f, names='value')
     lower_range.observe(h, names='value')
