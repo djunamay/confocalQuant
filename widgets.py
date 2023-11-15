@@ -9,6 +9,8 @@ import ipywidgets as widgets
 #     tooltips=['Description of slow', 'Description of regular', 'Description of fast'],
 # )
 
+text = widgets.HTML(value='')
+
 dropdown_soma = widgets.Dropdown(
     options=[1],
     value=1,
