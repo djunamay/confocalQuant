@@ -6,7 +6,7 @@ from PIL import Image
 import ipywidgets as widgets
 
 
-from widgets import buttons, upper_range, int_range_v, lower_range, dropdown_soma, dropdown_nuc, buttons2
+from widgets import buttons, upper_range, int_range_v, lower_range, dropdown_soma, dropdown_nuc, buttons2, text
 
 def load_2D(img, z_slice, N_channels):
     res = []
@@ -42,15 +42,17 @@ def update_image(img, lower_percentile, upper_percentile, channel, zi, N_channel
 
     return im
 
-def on_value_change_slider_upper(img, output2, lower_range, buttons, int_range_v, N_channels, bounds, buttons2, change):
+def on_value_change_slider_upper(img, output2, lower_range, buttons, int_range_v, N_channels, bounds, buttons2,text, change):
     update_bounds(bounds, buttons2, change['new'], higher=True)
+    text.value = '<br>'.join(['Channel ' + str(i) + ' lower bound = ' + str(bounds[i][0]) + '; higher bound = ' + str(bounds[i][1])for i in range(len(bounds))])
     
     with output2:  
         clear_output(wait=True)
         display(update_image(img, lower_range.value, change['new'], buttons.value, int_range_v.value, N_channels, bounds))
         
-def on_value_change_slider_lower(img, output2, upper_range, buttons, int_range_v, N_channels, bounds, buttons2, change):
+def on_value_change_slider_lower(img, output2, upper_range, buttons, int_range_v, N_channels, bounds, buttons2, text, change):
     update_bounds(bounds, buttons2, change['new'], higher=False)
+    text.value = '<br>'.join(['Channel ' + str(i) + ' lower bound = ' + str(bounds[i][0]) + '; higher bound = ' + str(bounds[i][1])for i in range(len(bounds))])
     
     with output2:  
         clear_output(wait=True)
@@ -86,15 +88,15 @@ def show_im(path, z_slice=10, N_channels=range(3)):
     output2 = widgets.Output()
 
     e = partial(on_value_change_slider_vertical, img, output2, lower_range, upper_range, buttons, N_channels, bounds)
-    f = partial(on_value_change_slider_upper, img, output2, lower_range, buttons, int_range_v, N_channels, bounds, buttons2)
+    f = partial(on_value_change_slider_upper, img, output2, lower_range, buttons, int_range_v, N_channels, bounds, buttons2, text)
     g = partial(on_value_change_button, img, output2, lower_range, upper_range, int_range_v, N_channels, bounds)
-    h = partial(on_value_change_slider_lower, img, output2, upper_range, buttons, int_range_v, N_channels, bounds, buttons2)
+    h = partial(on_value_change_slider_lower, img, output2, upper_range, buttons, int_range_v, N_channels, bounds, buttons2, text)
 
     upper_range.observe(f, names='value')
     lower_range.observe(h, names='value')
     buttons.observe(g, names='value')
     int_range_v.observe(e, names='value')
-    return widgets.VBox([buttons, buttons2, upper_range, lower_range, int_range_v, dropdown_soma, dropdown_nuc, output2])
+    return widgets.VBox([buttons, buttons2, upper_range, lower_range, int_range_v, text, output2])
 
 
 def sigmoid(x):
