@@ -10,19 +10,32 @@ import ipywidgets as widgets
 # )
 
 buttons = widgets.SelectMultiple(
-    options=[0, 1, 2],
+    options=[0, 1, 2, 3],
     value=[0],
     #rows=10,
     description='Channels',
     disabled=False
 )
 
-int_range = widgets.FloatSlider(
+upper_range = widgets.FloatSlider(
     value=99,
-    min=85,
+    min=0,
     max=100.0,
     step=0.1,
-    description='Normalization:',
+    description='Upper:',
+    disabled=False,
+    continuous_update=False,
+    orientation='horizontal',
+    readout=True,
+    readout_format='.1f',
+)
+
+lower_range = widgets.FloatSlider(
+    value=1,
+    min=0,
+    max=100.0,
+    step=0.1,
+    description='Lower:',
     disabled=False,
     continuous_update=False,
     orientation='horizontal',

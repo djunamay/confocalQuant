@@ -9,7 +9,7 @@ from widgets import buttons, upper_range, int_range_v, lower_range
 
 def load_2D(img, z_slice, N_channels):
     res = []
-    for i in range(3):
+    for i in N_channels:
         res.append(img.get_image_data("ZXY", C=i)[z_slice])
     out = np.stack(res, axis=2)    
     return out
@@ -20,7 +20,7 @@ def update_image(img, lower_percentile, upper_percentile, channel, zi, N_channel
     out = load_2D(img, zi, N_channels)
 
     channel = set(channel)
-    all_channels = range(3)
+    all_channels = range(len(N_channels))
     temp = [x for x in all_channels if x not in channel]
     
     mat = threshold_im(out, lower_percentile, upper_percentile)
@@ -54,9 +54,10 @@ def on_value_change_slider_vertical(img, output2, lower_range, upper_range, butt
         display(update_image(img, lower_range.value, upper_range.value, buttons.value, change['new'], N_channels))
 
         
-def show_im(path, z_slice=10):
+def show_im(path, z_slice=10, N_channels=range(3)):
     img = AICSImage(path)
-    N_channels = len(img.channel_names)
+    
+    buttons.options = range(len(N_channels))
     
     output2 = widgets.Output()
 
