@@ -58,6 +58,7 @@ def show_im(path, z_slice=10, N_channels=range(3)):
     img = AICSImage(path)
     
     buttons.options = range(len(N_channels))
+    int_range_v.max = img.dims['Z'][0]
     
     output2 = widgets.Output()
 
