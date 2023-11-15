@@ -15,6 +15,14 @@ def load_2D(img, z_slice, N_channels):
     out = np.stack(res, axis=2)    
     return out
 
+def update_bounds(bounds, buttons, new_value, higher=True):
+    if higher:
+        for i in buttons.value:
+            bounds[i] = (bounds[i][0], new_value)
+    else:
+        for i in buttons.value:
+            bounds[i] = (new_value, bounds[i][1])
+
 
 def update_image(img, lower_percentile, upper_percentile, channel, zi, N_channels, bounds):
     
