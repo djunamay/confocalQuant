@@ -112,3 +112,10 @@ def threshold_im(array, lower_percentile, upper_percentile):
     else:
         lower = np.percentile(array, lower_percentile, axis=(0,1))
     return ((np.clip(array.astype(np.float64)-lower, 0, upper)/upper)*255).astype('uint8')
+
+def load_3D(img, N_channels):
+    res = []
+    for i in N_channels:
+        res.append(img.get_image_data("ZXY", C=i))
+    out = np.stack(res, axis=3)    
+    return out
