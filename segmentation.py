@@ -15,18 +15,17 @@ def load_2D(img, z_slice):
     return out
 
 
-def update_image(img, percent, channel, zi):
+def update_image(img, lower_percentile, upper_percentile, channel, zi):
     
     out = load_2D(img, zi)
-    
-    normalize = np.percentile(out, percent, axis=(0,1))
 
     channel = set(channel)
     all_channels = range(3)
     temp = [x for x in all_channels if x not in channel]
     for i in temp:
         normalize[i] = 1e1000
-    im = Image.fromarray(np.clip(out.astype(np.float64)/normalize[None,None]*255.0, 0, 255).astype('uint8'))
+        
+    im = Image.fromarray(threshold_im(out, lower_percentile, upper_percentile))
 
     return im
 
@@ -65,7 +64,13 @@ def show_im(path, z_slice=10):
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
-def threshold_im(array, upper_percentile, lower_percentile):
-    upper = np.percentile(array, upper_percentile)
-    lower = np.percentile(array, lower_percentile)
-    return (np.clip(array-lower, 0, upper)/upper)*255
+def threshold_im(array, lower_percentile, upper_percentile):
+    if upper_percentile is None:
+        upper = np.max(array, axis=(0,1))
+    else:
+        upper = np.percentile(array, upper_percentile, axis=(0,1))
+    if lower_percentile is None:
+        lower = 0
+    else:
+        lower = np.percentile(array, lower_percentile, axis=(0,1))
+    return ((np.clip(array.astype(np.float64)-lower, 0, upper)/upper)*255).astype('uint8')
