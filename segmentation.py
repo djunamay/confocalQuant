@@ -5,7 +5,7 @@ from IPython.display import clear_output
 from PIL import Image
 import ipywidgets as widgets
 
-from widgets import buttons, int_range, int_range_v
+from widgets import buttons, upper_range, int_range_v
 
 def load_2D(img, z_slice):
     res = []
@@ -29,21 +29,21 @@ def update_image(img, lower_percentile, upper_percentile, channel, zi):
 
     return im
 
-def on_value_change_slider(img, output2, buttons, int_range_v, change):
+def on_value_change_slider_upper(img, output2, lower_range, buttons, int_range_v, change):
     with output2:  
         clear_output(wait=True)
-        display(update_image(img, change['new'], buttons.value, int_range_v.value))
+        display(update_image(img, lower_range.value, change['new'], buttons.value, int_range_v.value))
 
-def on_value_change_button(img, output2, int_range, int_range_v, change):
+def on_value_change_button(img, output2, lower_range, upper_range, int_range_v, change):
     with output2:  
         clear_output(wait=True)
-        display(update_image(img, int_range.value, change['new'], int_range_v.value))
+        display(update_image(img, lower_range.value, upper_range.value, change['new'], int_range_v.value))
 
 
-def on_value_change_slider_vertical(img, output2, int_range, buttons, change):
+def on_value_change_slider_vertical(img, output2, lower_range, upper_range, buttons, change):
     with output2:  
         clear_output(wait=True)
-        display(update_image(img, int_range.value, buttons.value, change['new']))
+        display(update_image(img, lower_range.value, upper_range.value, buttons.value, change['new']))
 
         
 def show_im(path, z_slice=10):
@@ -51,14 +51,14 @@ def show_im(path, z_slice=10):
     out = load_2D(img, z_slice)
     output2 = widgets.Output()
 
-    e = partial(on_value_change_slider_vertical, img, output2, int_range, buttons)
-    f = partial(on_value_change_slider, img, output2, buttons, int_range_v)
-    g = partial(on_value_change_button, img, output2, int_range, int_range_v)
+    e = partial(on_value_change_slider_vertical, img, output2, upper_range, buttons)
+    f = partial(on_value_change_slider_upper, img, output2, buttons, int_range_v)
+    g = partial(on_value_change_button, img, output2, upper_range, int_range_v)
     
-    int_range.observe(f, names='value')
+    upper_range.observe(f, names='value')
     buttons.observe(g, names='value')
     int_range_v.observe(e, names='value')
-    return widgets.VBox([buttons, int_range, int_range_v, output2])
+    return widgets.VBox([buttons, upper_range, int_range_v, output2])
 
 
 def sigmoid(x):
