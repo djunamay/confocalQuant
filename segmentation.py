@@ -8,6 +8,13 @@ import ipywidgets as widgets
 
 from widgets import buttons, upper_range, int_range_v, lower_range, dropdown_soma, dropdown_nuc, buttons2, text
 
+def load_3D(img, N_channels):
+    res = []
+    for i in N_channels:
+        res.append(img.get_image_data("ZXY", C=i))
+    out = np.stack(res, axis=3)    
+    return out
+
 def load_2D(img, z_slice, N_channels):
     res = []
     for i in N_channels:
