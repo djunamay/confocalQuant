@@ -6,7 +6,7 @@ from PIL import Image
 import ipywidgets as widgets
 
 
-from widgets import buttons, upper_range, int_range_v, lower_range, dropdown_soma, dropdown_nuc, buttons2, text
+from widgets import buttons, upper_range, int_range_v, lower_range, dropdown_soma, dropdown_nuc, buttons2, text, int_range_seg
 
 def load_3D(img, N_channels):
     res = []
@@ -126,3 +126,28 @@ def load_3D(img, N_channels):
         res.append(img.get_image_data("ZXY", C=i))
     out = np.stack(res, axis=3)    
     return out
+
+def show_segmentation(loaded_mat2, loaded_M, i):
+
+    T = loaded_mat2[i]
+    T[:,:,0][np.invert(loaded_M[i].mask)] = 255
+    T[:,:,1][np.invert(loaded_M[i].mask)] = 255
+    T[:,:,2][np.invert(loaded_M[i].mask)] = 255
+    
+    im = Image.fromarray(T)
+    
+    return im
+
+
+def on_slide(output2, loaded_mat2, loaded_M, change):
+    with output2:  
+        clear_output(wait=True)
+        display(show_segmentation(loaded_mat2, loaded_M, change['new']))
+    
+def toggle_segmentation(loaded_mat2, loaded_M):    
+    output2 = widgets.Output()
+    int_range_seg.max = loaded_mat2.shape[0]-1
+    e = partial(on_slide, output2, loaded_mat2, loaded_M)
+    int_range_seg.observe(e, names='value')
+    
+    return widgets.VBox([int_range_seg, output2])
