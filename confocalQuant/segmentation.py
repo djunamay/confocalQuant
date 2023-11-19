@@ -151,12 +151,14 @@ def load_3D(img, N_channels):
     out = np.stack(res, axis=3)    
     return out
 
-def show_segmentation(loaded_mat2, loaded_M, i):
+def show_segmentation(loaded_mat2, M, i):
+    
+    masked = np.where(M[i])
 
     T = loaded_mat2[i]
-    T[:,:,0][np.invert(loaded_M[i].mask)] = 255
-    T[:,:,1][np.invert(loaded_M[i].mask)] = 255
-    T[:,:,2][np.invert(loaded_M[i].mask)] = 255
+    T[:,:,0][masked] = 255
+    T[:,:,1][masked] = 255
+    T[:,:,2][masked] = 255
     
     im = Image.fromarray(T)
     
@@ -168,10 +170,13 @@ def on_slide(output2, loaded_mat2, loaded_M, change):
         clear_output(wait=True)
         display(show_segmentation(loaded_mat2, loaded_M, change['new']))
     
-def toggle_segmentation(loaded_mat2, loaded_M):    
+def toggle_segmentation(mat2, masks):    
     output2 = widgets.Output()
-    int_range_seg.max = loaded_mat2.shape[0]-1
-    e = partial(on_slide, output2, loaded_mat2, loaded_M)
+    int_range_seg.max = mat2.shape[0]-1
+    o = [find_boundaries(masks[i], mode = 'outer', background = 0) for i in range(masks.shape[0])]
+    M = np.stack(o, axis=0)
+
+    e = partial(on_slide, output2, mat2, M)
     int_range_seg.observe(e, names='value')
     
     return widgets.VBox([int_range_seg, output2])
