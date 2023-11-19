@@ -5,6 +5,8 @@ from IPython.display import clear_output
 from PIL import Image
 import ipywidgets as widgets
 from tqdm import tqdm
+from skimage.segmentation import find_boundaries
+import matplotlib.pyplot as plt
 
 from .widgets import buttons, upper_range, int_range_v, lower_range, dropdown_soma, dropdown_nuc, buttons2, text, int_range_seg
 
@@ -180,3 +182,15 @@ def toggle_segmentation(mat2, masks):
     int_range_seg.observe(e, names='value')
     
     return widgets.VBox([int_range_seg, output2])
+
+def show_maxproj_with_outlines(mat2, masks):
+    max_proj = np.max(mat2, axis=(0))
+
+    for i in tqdm(range(masks.shape[0])):
+        M = find_boundaries(masks[i], mode = 'outer', background = 0)
+        max_proj[:,:,0][np.where(M)] = 255
+        max_proj[:,:,1][np.where(M)] = 255
+        max_proj[:,:,2][np.where(M)] = 255
+
+
+    plt.imshow(max_proj)
