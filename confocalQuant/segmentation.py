@@ -118,9 +118,9 @@ def do_inference(mat, do_3D, model, progressbar=None, anisotropy=None, diameter=
         masks, flows, styles, _ = model.eval(mat, diameter=diameter, channels=channels, anisotropy=anisotropy, channel_axis=channel_axis, z_axis=z_axis, do_3D=do_3D, min_size=min_size, progress=progressbar, normalize = True)        
     return masks, flows
 
-def extract_single_channel(keep_channel, channels, mat):
+def extract_channels(keep_channel, channels, mat):
     mat2 = mat.copy()
-    channels_discard = np.array(channels)[[x!=keep_channel for x in channels]]
+    channels_discard = np.array(channels)[[x not in set(keep_channel) for x in channels]]
     for i in channels_discard:
         mat2[:,:,:,i] = 0
     return mat2
