@@ -4,7 +4,7 @@ from functools import partial
 from IPython.display import clear_output
 from PIL import Image
 import ipywidgets as widgets
-
+from tqdm import tqdm
 
 from .widgets import buttons, upper_range, int_range_v, lower_range, dropdown_soma, dropdown_nuc, buttons2, text, int_range_seg
 
@@ -104,6 +104,13 @@ def show_im(path, z_slice=10, N_channels=range(3)):
     buttons.observe(g, names='value')
     int_range_v.observe(e, names='value')
     return widgets.VBox([buttons, buttons2, upper_range, lower_range, int_range_v, text, output2]), bounds
+
+def do_inference(mat, do_3D, progressbar=None, anisotropy=None, diameter=20, channels=[2,0], zi = 15, channel_axis = 3, z_axis = 0, min_size = 1000):
+    if do_3D is False:
+        masks, flows, styles, _ = model.eval(mat[zi], diameter=diameter, channels=channels, do_3D=do_3D, progress=progressbar, normalize = False)
+    elif do_3D:
+        masks, flows, styles, _ = model.eval(mat, diameter=diameter, channels=channels, anisotropy=anisotropy, channel_axis=channel_axis, z_axis=z_axis, do_3D=do_3D, min_size=min_size, progress=progressbar, normalize = False)        
+    return masks, flows
 
 def apply_thresh_all_Z(out, bounds):
     mat = out.copy().astype('uint8')
