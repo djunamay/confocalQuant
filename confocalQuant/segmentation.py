@@ -105,6 +105,10 @@ def show_im(path, z_slice=10, N_channels=range(3)):
     int_range_v.observe(e, names='value')
     return widgets.VBox([buttons, buttons2, upper_range, lower_range, int_range_v, text, output2]), bounds
 
+def get_anisotropy(img):
+    temp = img.physical_pixel_sizes
+    return temp.Z/temp.X
+
 def do_inference(mat, do_3D, progressbar=None, anisotropy=None, diameter=20, channels=[2,0], zi = 15, channel_axis = 3, z_axis = 0, min_size = 1000):
     if do_3D is False:
         masks, flows, styles, _ = model.eval(mat[zi], diameter=diameter, channels=channels, do_3D=do_3D, progress=progressbar, normalize = False)
