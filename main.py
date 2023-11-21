@@ -14,6 +14,9 @@ import argparse
 from distutils.util import strtobool
 import os
 
+def get_czi_files(directory): # this function is chatGPT3
+    files = [file for file in os.listdir(directory) if file.endswith(".czi")]
+    return sorted(files)
 
 def process_image(folder, im_path, start, end, ID, model, channels, bounds, filter_dict, diameter, inf_channels, min_size, Ncells, NZi, start_Y, end_Y, start_zi, end_zi, xi_per_job, yi_per_job, Njobs):
     
@@ -91,8 +94,11 @@ if __name__ == '__main__':
       
     start_zi = zi_per_job * ID
     end_zi = start_zi + zi_per_job
+    
+    im_path_root = args.impath
+    im_path = im_path_root + get_czi_files(im_path_root)[ID]
                                                
-    process_image(args.folder, args.im_path, start, end, ID, model, args.channels, args.bounds, args.filter_dict, args.diameter, args.inf_channels, args.min_size, args.Ncells, args.NZi, start_Y, end_Y, start_zi, end_zi, args.xi_per_job, args.yi_per_job, args.Njobs)
+    process_image(args.folder, im_path, start, end, ID, model, args.channels, args.bounds, args.filter_dict, args.diameter, args.inf_channels, args.min_size, args.Ncells, args.NZi, start_Y, end_Y, start_zi, end_zi, args.xi_per_job, args.yi_per_job, args.Njobs)
     
     
     
