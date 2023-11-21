@@ -7,7 +7,7 @@ def compute_single_expectation_per_cell(Y, P, N):
 
 def compute_all_expectations_per_cell(MASK, mat, probs, N):
     res = []
-    for i in range(3):
+    for i in range(mat.shape[3]):
         Y = ma.masked_array(mat[:,:,:,i], MASK)
         P = ma.masked_array(probs, MASK)
         res.append(compute_single_expectation_per_cell(Y,P,N))
