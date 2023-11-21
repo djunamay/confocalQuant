@@ -1,4 +1,6 @@
 import numpy.ma as ma
+from tqdm import tqdm
+import numpy as np
 
 def compute_single_expectation_per_cell(Y, P, N):
     return ma.sum(ma.multiply(Y,P))*(1/N)
