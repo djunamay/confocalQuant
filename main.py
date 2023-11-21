@@ -15,13 +15,14 @@ import argparse
 from distutils.util import strtobool
 import os
 
-import json
+import ast
 
 def parse_dict(arg):
     try:
-        return json.loads(arg)
-    except json.JSONDecodeError:
-        raise argparse.ArgumentTypeError(f"Invalid JSON format: {arg}")
+        # Safely evaluate the string as a Python literal expression
+        return ast.literal_eval(arg)
+    except (SyntaxError, ValueError) as e:
+        raise argparse.ArgumentTypeError(f"Invalid dictionary format: {arg}")
 
         
 def get_czi_files(directory): # this function is chatGPT3
@@ -29,7 +30,7 @@ def get_czi_files(directory): # this function is chatGPT3
     return sorted(files)
 
 def process_image(folder, im_path, ID, model, channels, bounds, filter_dict, diameter, inf_channels, min_size, Ncells, NZi, start_Y, start_zi, end_zi, xi_per_job, yi_per_job, Njobs):
-    
+    print(bounds)
     mmap_1 = path.join(folder, 'mat.npy')
 
     if not path.exists(mmap_1):
@@ -83,7 +84,7 @@ def process_image(folder, im_path, ID, model, channels, bounds, filter_dict, dia
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--folder', type=str, required=True)
-    parser.add_argument('--im_path', type=str, required=True)
+    parser.add_argument('--impath', type=str, required=True)
     parser.add_argument('--model_path', type=str, required=True)
     parser.add_argument('--channels', type=int, nargs="+", required=True)
     parser.add_argument('--bounds', type=parse_dict, required=True)
@@ -103,6 +104,7 @@ if __name__ == '__main__':
     cells_per_job = args.cells_per_job
     zi_per_job = args.zi_per_job
 
+    print('loading model')
     model = ch.load(args.model_path)
     
     ID = 2#int(os.environ['SLURM_ARRAY_TASK_ID'])
@@ -113,7 +115,8 @@ if __name__ == '__main__':
     
     im_path_root = args.impath
     im_path = im_path_root + get_czi_files(im_path_root)[ID]
-                                               
+    
+    print('starting processing')
     process_image(args.folder, im_path, ID, model, args.channels, args.bounds, args.filter_dict, args.diameter, args.inf_channels, args.min_size, args.Ncells, args.NZi, start_Y, start_zi, end_zi, args.xi_per_job, args.yi_per_job, args.Njobs)
     
     
