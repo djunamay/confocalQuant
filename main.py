@@ -29,7 +29,7 @@ def get_czi_files(directory): # this function is chatGPT3
     files = [file for file in os.listdir(directory) if file.endswith(".czi")]
     return sorted(files)
 
-def process_image(folder, im_path, ID, model, channels, bounds, filter_dict, diameter, inf_channels, min_size, Ncells, NZi, start_Y, start_zi, end_zi, xi_per_job, yi_per_job, Njobs):
+def process_image(folder, im_path, ID, model, channels, bounds, filter_dict, diameter, inf_channels, min_size, Ncells, NZi, start_Y, start_zi, xi_per_job, yi_per_job, Njobs):
     print(bounds)
     mmap_1 = path.join(folder, 'mat.npy')
 
@@ -59,7 +59,7 @@ def process_image(folder, im_path, ID, model, channels, bounds, filter_dict, dia
         
     # get the image stats
     print('quantifying 1..')
-    probs = flows[2]
+    probs = sigmoid(flows[2])
     Y = get_im_stats(masks, mat, probs)
 
     # filter on pre-specified values
@@ -75,6 +75,7 @@ def process_image(folder, im_path, ID, model, channels, bounds, filter_dict, dia
             
     # save mat, masks, and Y_filtered
     print('saving..')
+    end_zi = start_zi + mat.shape[0]
     all_mat[start_zi:end_zi] = mat
     all_masks[start_zi:end_zi] = masks
     end_Y = start_Y + Y_filtered.shape[0]
@@ -111,13 +112,12 @@ if __name__ == '__main__':
     start_Y = cells_per_job * ID
       
     start_zi = zi_per_job * ID
-    end_zi = start_zi + zi_per_job
     
     im_path_root = args.impath
     im_path = im_path_root + get_czi_files(im_path_root)[ID]
     
     print('starting processing')
-    process_image(args.folder, im_path, ID, model, args.channels, args.bounds, args.filter_dict, args.diameter, args.inf_channels, args.min_size, args.Ncells, args.NZi, start_Y, start_zi, end_zi, args.xi_per_job, args.yi_per_job, args.Njobs)
+    process_image(args.folder, im_path, ID, model, args.channels, args.bounds, args.filter_dict, args.diameter, args.inf_channels, args.min_size, args.Ncells, args.NZi, start_Y, start_zi, args.xi_per_job, args.yi_per_job, args.Njobs)
     
     
     
