@@ -194,3 +194,9 @@ def show_maxproj_with_outlines(mat2, masks):
 
 
     plt.imshow(max_proj)
+    
+    
+def hide_masks(Y, masks_copy, dictionary):
+    hide_masks = np.where((Y[:,0]<dictionary[0]) | (Y[:,1]<dictionary[1]) | (Y[:,2]<dictionary[2]) | (Y[:,3]<dictionary[3]))[0]+1
+    for i in hide_masks:
+        masks_copy[np.where(masks_copy==i)]=False
