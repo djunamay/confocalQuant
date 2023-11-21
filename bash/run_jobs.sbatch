@@ -8,43 +8,22 @@
 
 module load anaconda/2022a
 
-directory='./xgb_runs/alpha'
-directory+=$ALPHA
-directory+='_'
-directory+=$NMODELS
-directory+='_'
+cd /home/gridsan/djuna/homer/github/confocalQuant
 
-if [ $RANDOMIZE == "True" ]
-then 
-    directory+='random/'
-elif [ $RANDOMIZE != "True" ]
-then 
-    directory+='fixed/'
-fi
+python main.py --folder='./outs/' \
+--im_path='../image_analysis2/' \
+--model_path='./models/cyto2' \
+--channels=0 1 2 3 \
+--bounds='{"0": "(1,99)", "1": "(48.89, 99.84)", "2": "(1, 99)", "3": "(1, 99)"}' \
+--filter_dict='{"0": "0", "1": "0", "2": "0", "3": "0", "4": "0"}' \
+--diameter=20 \
+--inf_channels=2 0 \
+--min_size=1000 \
+--Ncells=500 \
+--cells_per_job=100 \
+--NZi=60 \
+--zi_per_job=20 \
+--xi_per_job=1024 \
+--yi_per_job=1024 \
+--Njobs=5
 
-if [ ! -d "$directory" ]
-then
-    echo "making new directory"
-    mkdir $directory
-else echo "directory exists"
-fi
-
-cd /data1/groups/TsaiMadry/AD_subtypes
-python train_xgb.py --output_dir=$directory --alpha=$ALPHA --randomize_alpha=$RANDOMIZE --models-per-job=500 --N=$NMODELS
-
-python main.py --folder=
---im_path=
---model_path=
---channels=
---bounds=
---filter_dict=
---diameter=
---inf_channels=
---min_size=
---Ncells=
---cells_per_job=
---NZi=
---zi_per_job=
---xi_per_job=
---yi_per_job=
---Njobs=
