@@ -42,6 +42,7 @@ def process_image(folder, im_path, ID, model, channels, bounds, filter_dict, dia
     all_masks = np.lib.format.open_memmap(path.join(folder, 'masks.npy'), shape=(NZi, xi_per_job, yi_per_job), dtype='uint16', mode=mode)
     all_Y_filtered = np.lib.format.open_memmap(path.join(folder, 'Y_filtered.npy'), shape=(Ncells, len(channels)+2), dtype=float, mode=mode)
     Ncells_per_job = np.lib.format.open_memmap(path.join(folder, 'Ncells_per_job.npy'), shape=(Njobs,1), dtype=int, mode=mode)
+    Nzi_per_job = np.lib.format.open_memmap(path.join(folder, 'Nzi_per_job.npy'), shape=(Njobs,1), dtype=int, mode=mode)
 
     # load image with channels from above
     img = AICSImage(im_path)
@@ -81,6 +82,7 @@ def process_image(folder, im_path, ID, model, channels, bounds, filter_dict, dia
     end_Y = start_Y + Y_filtered.shape[0]
     all_Y_filtered[start_Y:end_Y] = Y_filtered
     Ncells_per_job[ID] = Y_filtered.shape[0]
+    Nzi_per_job[ID] = mat.shape[0]
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
