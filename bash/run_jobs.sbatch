@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name=ad_dm    # Job name
-#SBATCH --mem=50G                     # Job memory request
-#SBATCH --time=48:00:00               # Time limit hrs:min:sec
-#SBATCH -c 20 
+#SBATCH --mem=10G                     # Job memory request
+#SBATCH --time=00:30:00               # Time limit hrs:min:sec
+#SBATCH -c 0 
 #SBATCH -p xeon-p8
 #SBATCH --array 0-99
 
