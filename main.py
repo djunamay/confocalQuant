@@ -107,7 +107,7 @@ if __name__ == '__main__':
     print('loading model')
     model = ch.load(args.model_path)
     
-    ID = 2#int(os.environ['SLURM_ARRAY_TASK_ID'])
+    ID = int(os.environ['SLURM_ARRAY_TASK_ID'])
     start_Y = cells_per_job * ID
       
     start_zi = zi_per_job * ID
