@@ -110,13 +110,14 @@ if __name__ == '__main__':
     print('loading model')
     model = ch.load(args.model_path)
     
-    ID = 0#int(os.environ['SLURM_ARRAY_TASK_ID'])
+    ID = int(os.environ['SLURM_ARRAY_TASK_ID'])
     start_Y = cells_per_job * ID
       
     start_zi = zi_per_job * ID
-    
+    print(ID)
     im_path_root = args.impath
     im_path = im_path_root + get_czi_files(im_path_root)[ID]
+    print(im_path)
     
     print('starting processing')
     process_image(args.folder, im_path, ID, model, args.channels, args.bounds, args.filter_dict, args.diameter, args.inf_channels, args.min_size, args.Ncells, args.NZi, start_Y, start_zi, args.xi_per_job, args.yi_per_job, args.Njobs)
