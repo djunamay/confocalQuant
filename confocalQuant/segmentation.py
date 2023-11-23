@@ -288,7 +288,7 @@ def toggle_filters(out_float):
     
     zi_slider = create_slider_int(10, 0, out_float.shape[0]-1, 1, 'Zi:')
     gamma_slider = create_slider_float(1, 0, 5, 0.01, 'gamma:')
-    median_slider = create_slider_int(1, 1, 7, 3, 'median:')
+    median_slider = create_slider_int(1, 0, 7, 3, 'median:')
     background_slider = create_slider_float(0, 0, 100, 0.01, 'background:')
     lower_slider = create_slider_float(0, 0, 100, 0.01, 'lower:')
     upper_slider = create_slider_float(100, 0, 100, 0.01, 'upper:')
@@ -305,14 +305,14 @@ def toggle_filters(out_float):
     channel_show.observe(f, names='value')
 #     channel_adjust.observe(f, names='value')
 
-#     zi_slider.observe(f, names='value')
+    zi_slider.observe(f, names='value')
 #     gamma_slider.observe(f, names='value')
 #     median_slider.observe(f, names='value')
 #     background_slider.observe(f, names='value')
 #     lower_slider.observe(f, names='value')
 #     upper_slider.observe(f, names='value')
     
-    return widgets.VBox([channel_show, channel_adjust, zi_slider, gamma_slider, median_slider, background_slider, lower_slider, upper_slider, widget_output]), median, background
+    return widgets.VBox([channel_show, channel_adjust, zi_slider, gamma_slider, median_slider, background_slider, lower_slider, upper_slider, widget_output]), median_slider.value, background_dict, gamma_dict, upper_dict, lower_dict
 
 def update_dict(dictionary, adjust, new_val):
     for i in adjust:
