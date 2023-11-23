@@ -200,3 +200,13 @@ def hide_masks(Y, masks_copy, dictionary):
     hide_masks = np.where((Y[:,0]<dictionary[0]) | (Y[:,1]<dictionary[1]) | (Y[:,2]<dictionary[2]) | (Y[:,3]<dictionary[3]))[0]+1
     for i in hide_masks:
         masks_copy[np.where(masks_copy==i)]=False
+        
+
+def run_med_filter(out_float, kernel_size=3):
+    out_med = out_float.copy()
+
+    for i in tqdm(range(out.shape[0])):
+        for j in range(out.shape[-1]):
+            out_med[i,:,:,j] = signal.medfilt2d(out_float[i,:,:,j], kernel_size=kernel_size)
+    return out_med
+        
