@@ -7,6 +7,7 @@ import ipywidgets as widgets
 from tqdm import tqdm
 from skimage.segmentation import find_boundaries
 import matplotlib.pyplot as plt
+from scipy import signal
 
 from .widgets import buttons, upper_range, int_range_v, lower_range, dropdown_soma, dropdown_nuc, buttons2, text, int_range_seg
 
@@ -210,3 +211,17 @@ def run_med_filter(out_float, kernel_size=3):
             out_med[i,:,:,j] = signal.medfilt2d(out_float[i,:,:,j], kernel_size=kernel_size)
     return out_med
         
+    
+def gamma_correct(image_float, gamma, lower, upper):
+    
+    # threshold 
+    lower = np.percentile(image_float, lower)
+    upper = np.percentile(image_float, upper)
+    
+    # Clip the values to be in the valid range [0, 1]
+    image_float = np.clip((image_float-lower)/(upper-lower), a_min = 0, a_max = 1)
+    
+    # Apply gamma correction
+    image_corrected = np.power(image_float, gamma)
+    
+    return image_corrected
