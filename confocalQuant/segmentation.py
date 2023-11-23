@@ -119,8 +119,9 @@ def do_inference(mat, do_3D, model, progressbar=None, anisotropy=None, diameter=
         masks, flows, styles, _ = model.eval(mat, diameter=diameter, channels=channels, anisotropy=anisotropy, channel_axis=channel_axis, z_axis=z_axis, do_3D=do_3D, min_size=min_size, progress=progressbar, normalize = normalize)        
     return masks, flows
 
-def extract_channels(keep_channel, channels, mat):
+def extract_channels(keep_channel, mat):
     mat2 = mat.copy()
+    channels = range(mat.shape[3])
     channels_discard = np.array(channels)[[x not in set(keep_channel) for x in channels]]
     for i in channels_discard:
         mat2[:,:,:,i] = 0
@@ -206,8 +207,8 @@ def hide_masks(Y, masks_copy, dictionary):
 def run_med_filter(out_float, kernel_size=3):
     out_med = out_float.copy()
 
-    for i in tqdm(range(out.shape[0])):
-        for j in range(out.shape[-1]):
+    for i in tqdm(range(out_med.shape[0])):
+        for j in range(out_med.shape[-1]):
             out_med[i,:,:,j] = signal.medfilt2d(out_float[i,:,:,j], kernel_size=kernel_size)
     return out_med
         
@@ -226,10 +227,188 @@ def gamma_correct_channel(image_float, gamma, lower, upper):
     
     return image_corrected
 
-def gamma_correct_image(im, dictionary):
+def gamma_correct_image(im, gamma_dict, lower_dict, upper_dict):
     im_corrected = im.copy()
     
-    for i in range(im.shape[3]):
-        im_corrected[:,:,:,i] = gamma_correct_channel(im[:,:,:,i], dictionary[i][0], dictionary[i][1], dictionary[i][2])
+    for i in range(len(gamma_dict)):
+        im_corrected[:,:,:,i] = gamma_correct_channel(im[:,:,:,i], gamma_dict[i], lower_dict[i], upper_dict[i])
         
     return im_corrected
+
+def int_to_float(out):
+    return out.astype(float)/255
+
+def float_to_int(out):
+    return (out*255).astype('uint8')
+
+def display_image(out_float, kernel_size, show, gamma_dict, background_dict, lower_dict, upper_dict, Zi):
+    # run med filter to remove noise
+    out_med = run_med_filter(out_float, kernel_size = kernel_size)
+
+    # perform gamma correction for visualization
+    out_med_gamma = gamma_correct_image(out_med, gamma_dict, lower_dict, upper_dict)
+    
+
+    # do background subtraction
+    out_med_gamma_bgrnd = out_med_gamma#gamma_correct_image(out_med, background_dict)
+
+
+    # only show selected channels
+    out_med_gamma_bgrnd_sele = extract_channels(show,out_med_gamma_bgrnd)   
+    
+    # return selected z channel
+    im = Image.fromarray(float_to_int(out_med_gamma_bgrnd_sele)[Zi])
+    return im
+
+def on_filter_change(widget_output, out_float, kernel_size, adjust, show, gamma_dict, background_dict, gamma_new_val, background_new_val, lower_dict, upper_dict, upper_new_val, lower_new_val, Zi, change):
+    
+    with widget_output:  
+        clear_output(wait=True)
+
+        update_dict(gamma_dict, adjust.value, gamma_new_val.value)
+        update_dict(background_dict, adjust.value, background_new_val.value)
+        update_dict(lower_dict, adjust.value, lower_new_val.value)
+        update_dict(upper_dict, adjust.value, upper_new_val.value)
+    
+        # print(gamma_dict)
+        # print(background_dict)
+        # print(lower_dict)
+        # print(upper_dict)
+        # print(Zi)
+        # print(show)
+        
+        display(display_image(out_float, kernel_size.value, show.value, gamma_dict, background_dict, lower_dict, upper_dict, Zi.value))
+
+    
+def toggle_filters(out_float):
+
+    N_channels = out_float.shape[3]
+    channel_adjust = create_buttons(range(N_channels), [0], 'Adjust:')
+    channel_show = create_buttons(range(N_channels), [1], 'Show:')
+    
+    zi_slider = create_slider_int(10, 0, out_float.shape[0]-1, 1, 'Zi:')
+    gamma_slider = create_slider_float(1, 0, 5, 0.01, 'gamma:')
+    median_slider = create_slider_int(1, 1, 7, 3, 'median:')
+    background_slider = create_slider_float(0, 0, 100, 0.01, 'background:')
+    lower_slider = create_slider_float(0, 0, 100, 0.01, 'lower:')
+    upper_slider = create_slider_float(100, 0, 100, 0.01, 'upper:')
+
+    widget_output = widgets.Output()
+    
+    gamma_dict = {0:1, 1:1, 2:1}
+    lower_dict = {0:0, 1:0, 2:0}
+    upper_dict = {0:100, 1:100, 2:100}
+    background_dict = {0:0, 1:0, 2:0}
+    
+    f = partial(on_filter_change, widget_output, out_float, median_slider, channel_adjust, channel_show, gamma_dict, background_dict, gamma_slider, background_slider, lower_dict, upper_dict, upper_slider, lower_slider,zi_slider)
+    
+    channel_show.observe(f, names='value')
+#     channel_adjust.observe(f, names='value')
+
+#     zi_slider.observe(f, names='value')
+#     gamma_slider.observe(f, names='value')
+#     median_slider.observe(f, names='value')
+#     background_slider.observe(f, names='value')
+#     lower_slider.observe(f, names='value')
+#     upper_slider.observe(f, names='value')
+    
+    return widgets.VBox([channel_show, channel_adjust, zi_slider, gamma_slider, median_slider, background_slider, lower_slider, upper_slider, widget_output]), median, background
+
+def update_dict(dictionary, adjust, new_val):
+    for i in adjust:
+        dictionary[i] = new_val
+            
+def create_slider_float(value, min, max, step, description):
+    slider = widgets.FloatSlider(
+    value=value,
+    min=min,
+    max=max,
+    step=step,
+    description=description,
+    disabled=False,
+    continuous_update=False,
+    orientation='horizontal',
+    readout=True,
+    readout_format='.1f',
+)
+    return slider
+
+
+def create_slider_int(value, min, max, step, description):
+    slider = widgets.IntSlider(
+    value=value,
+    min=min,
+    max=max,
+    step=step,
+    description=description,
+    disabled=False,
+    continuous_update=False,
+    orientation='horizontal',
+    readout=True,
+    readout_format='.1f',
+)
+    return slider
+
+def create_buttons(options, value, description):
+    
+    buttons = widgets.SelectMultiple(
+    options=options,
+    value=value,
+    description=description,
+    disabled=False
+)
+    return buttons
+
+
+
+
+def update_image(img, lower_percentile, upper_percentile, channel, zi, N_channels, bounds):
+    
+    out = load_2D(img, zi, N_channels)
+
+    channel = set(channel)
+    all_channels = range(len(N_channels))
+    temp = [x for x in all_channels if x not in channel]
+    
+    mat = out.copy().astype('uint8')
+    for i in bounds:
+        mat[:,:,i] = threshold_im(out, bounds[i][0], bounds[i][1])[:,:,i]
+    
+    for i in temp:
+        mat[:,:,i] = 0
+        
+    im = Image.fromarray(mat)
+
+    return im
+
+    
+    
+    
+        
+def show_im(path, z_slice=10, N_channels=range(3)):
+    img = AICSImage(path)
+    
+    opt = range(len(N_channels))
+    
+    bounds = dict(zip(opt, [(1,99),(1,99),(1,99)]))
+    
+    buttons.options = opt
+    buttons2.options = opt
+
+    # dropdown_soma.options = opt
+    # dropdown_nuc.options = opt
+
+    int_range_v.max = img.dims['Z'][0]
+    
+    output2 = widgets.Output()
+
+    e = partial(on_value_change_slider_vertical, img, output2, lower_range, upper_range, buttons, N_channels, bounds)
+    f = partial(on_value_change_slider_upper, img, output2, lower_range, buttons, int_range_v, N_channels, bounds, buttons2, text)
+    g = partial(on_value_change_button, img, output2, lower_range, upper_range, int_range_v, N_channels, bounds)
+    h = partial(on_value_change_slider_lower, img, output2, upper_range, buttons, int_range_v, N_channels, bounds, buttons2, text)
+
+    upper_range.observe(f, names='value')
+    lower_range.observe(h, names='value')
+    buttons.observe(g, names='value')
+    int_range_v.observe(e, names='value')
+    return widgets.VBox([buttons, buttons2, upper_range, lower_range, int_range_v, text, output2]), bounds
