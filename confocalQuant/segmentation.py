@@ -212,7 +212,7 @@ def run_med_filter(out_float, kernel_size=3):
     return out_med
         
     
-def gamma_correct(image_float, gamma, lower, upper):
+def gamma_correct_channel(image_float, gamma, lower, upper):
     
     # threshold 
     lower = np.percentile(image_float, lower)
@@ -225,3 +225,11 @@ def gamma_correct(image_float, gamma, lower, upper):
     image_corrected = np.power(image_float, gamma)
     
     return image_corrected
+
+def gamma_correct_image(im, dictionary):
+    im_corrected = im.copy()
+    
+    for i in range(im.shape[3]):
+        im_corrected[:,:,:,i] = gamma_correct_channel(im[:,:,:,i], dictionary[i][0], dictionary[i][1], dictionary[i][2])
+        
+    return im_corrected
