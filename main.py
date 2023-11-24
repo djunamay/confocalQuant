@@ -8,8 +8,8 @@ import torch as ch
 from tqdm import tqdm
 from os import path
 
-from confocalQuant.segmentation import load_3D, apply_thresh_all_Z, do_inference, get_anisotropy, sigmoid, hide_masks
-from confocalQuant.quantification import get_im_stats
+from confocalQuant.segmentation import load_3D, int_to_float, run_med_filter, bgrnd_subtract, get_anisotropy, do_inference,  sigmoid
+from confocalQuant.quantification import get_all_expectations
 
 import argparse
 from distutils.util import strtobool
@@ -47,33 +47,34 @@ def process_image(folder, im_path, ID, model, channels, bounds, filter_dict, dia
     # load image with channels from above
     img = AICSImage(im_path)
     out = load_3D(img, channels)
+    
+    # convert to float
+    out_float = int_to_float(out)
 
-    # thresholding
-    mat = apply_thresh_all_Z(out, bounds)
+    # run med filter to remove noise
+    out_med = run_med_filter(out_float, kernel = kernel)
 
-    # get anisotropy
-    anisotropy = get_anisotropy(img)
+    # run background subtraction 
+    out_float_subtract = bgrnd_subtract(out_med, np.array(list(background_dict.values())))
+
+    # load model
+    model = models.Cellpose(gpu = True, model_type='cyto2')
+
+    # run inference
+    masks, flows = do_inference(out_float_subtract, do_3D=True, model=model, anisotropy=anisotropy, diameter=20, channels=[2,3], channel_axis=3, z_axis=0, min_size=1100, normalize = False)
         
-    # do inference
-    print('doing inference..')
-    masks, flows = do_inference(mat, do_3D=True, model=model, anisotropy=anisotropy, diameter=diameter, channels=inf_channels, min_size = min_size)
-        
-    # get the image stats
-    print('quantifying 1..')
+    # get expectations
     probs = sigmoid(flows[2])
-    Y = get_im_stats(masks, mat, probs)
-
-    # filter on pre-specified values
-    print('filtering..')
-    hide_masks(Y, masks, filter_dict)
-        
-    # get final filtered values
-    print('quantifying 2..')
-    Y_filtered = get_im_stats(masks, out, probs)
+    Y = get_all_expectations(out_float_subtract, probs, masks)
+  
+    # filter
+    channel_zero_bgrnd_mean = np.mean(out_float_subtract[:,:,:,0][masks==0])
+    Y_filtered = Y[Y[:,1]>0.025]
+    Y_filtered = np.concatenate((Y_filtered, (Y_filtered[:,0]-channel_zero_bgrnd_mean).reshape(-1,1)), axis=1)
     
     # add image ID
     Y_filtered = np.concatenate((Y_filtered, np.repeat(ID, Y_filtered.shape[0]).reshape(-1,1)), axis=1)
-            
+    
     # save mat, masks, and Y_filtered
     print('saving..')
     end_zi = start_zi + mat.shape[0]
