@@ -259,9 +259,30 @@ def int_to_float(out):
 def float_to_int(out):
     return (out*255).astype('uint8')
 
+@nb.njit(parallel=True)
+def bgrnd_subtract(matrix, percentile):
+    res = []
+    for i in range(matrix.shape[-1]):
+        res.append(estimate_percentile(matrix, percentile[i], i))
+
+    out = matrix-np.array(res)
+    
+    return  np.clip(out, 0, 1)
+
+@nb.njit(parallel=True)
+def estimate_percentile(matrix, percentile, channel):
+    N = matrix.shape[0]
+    x = 0
+    for i in nb.prange(N):
+        x+=np.percentile(matrix[i,:,:,channel], percentile)
+    return x/N
+
 def display_image(out_float, kernel_size, show, gamma_dict, background_dict, lower_dict, upper_dict, Zi):
     
-    matrix = out_float[Zi]
+    # do background subtraction
+    out_float_subtract = bgrnd_subtract(out_float, np.array(list(background_dict.values())))
+
+    matrix = out_float_subtract[Zi]
     
     # run med filter to remove noise
     out_med = run_med_filter(matrix, kernel = kernel_size, is_4D = False)
@@ -269,12 +290,8 @@ def display_image(out_float, kernel_size, show, gamma_dict, background_dict, low
     # perform gamma correction for visualization
     out_med_gamma = gamma_correct_image(out_med, gamma_dict, lower_dict, upper_dict, is_4D = False)
     
-
-    # do background subtraction
-    out_med_gamma_bgrnd = out_med_gamma#gamma_correct_image(out_med, background_dict)
-
     # only show selected channels
-    out_med_gamma_bgrnd_sele = extract_channels(show,out_med_gamma_bgrnd, is_4D=False)   
+    out_med_gamma_bgrnd_sele = extract_channels(show,out_med_gamma, is_4D=False)   
     
     # return selected z channel
     im = Image.fromarray(float_to_int(out_med_gamma_bgrnd_sele))
@@ -308,7 +325,7 @@ def toggle_filters(out_float):
     
     zi_slider = create_slider_int(10, 0, out_float.shape[0]-1, 1, 'Zi:')
     gamma_slider = create_slider_float(1, 0, 5, 0.01, 'gamma:')
-    median_slider = create_slider_int(1, 0, 7, 3, 'median:')
+    median_slider = create_slider_int(1, 1, 51, 2, 'median:')
     background_slider = create_slider_float(0, 0, 100, 0.01, 'background:')
     lower_slider = create_slider_float(0, 0, 100, 0.01, 'lower:')
     upper_slider = create_slider_float(100, 0, 100, 0.01, 'upper:')
