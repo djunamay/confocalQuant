@@ -196,7 +196,7 @@ def toggle_segmentation(mat2, masks):
     return widgets.VBox([int_range_seg, output2])
 
 def show_maxproj_with_outlines(mat2, masks):
-    max_proj = np.max(mat2, axis=(0))
+    max_proj = np.mean(mat2, axis=(0))
 
     for i in tqdm(range(masks.shape[0])):
         M = find_boundaries(masks[i], mode = 'outer', background = 0)
@@ -209,7 +209,7 @@ def show_maxproj_with_outlines(mat2, masks):
     
     
 def hide_masks(Y, masks_copy, dictionary):
-    hide_masks = np.where((Y[:,0]<dictionary[0]) | (Y[:,1]<dictionary[1]) | (Y[:,2]<dictionary[2]) | (Y[:,3]<dictionary[3]))[0]+1
+    hide_masks = np.where((Y[:,0]<dictionary[0]) | (Y[:,1]<dictionary[1]) | (Y[:,2]<dictionary[2]))[0]+1
     for i in hide_masks:
         masks_copy[np.where(masks_copy==i)]=False
         
