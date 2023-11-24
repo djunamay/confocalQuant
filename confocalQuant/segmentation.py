@@ -8,6 +8,7 @@ from tqdm import tqdm
 from skimage.segmentation import find_boundaries
 import matplotlib.pyplot as plt
 from scipy import signal
+import numba as nb
 
 from .widgets import buttons, upper_range, int_range_v, lower_range, dropdown_soma, dropdown_nuc, buttons2, text, int_range_seg
 
@@ -119,12 +120,21 @@ def do_inference(mat, do_3D, model, progressbar=None, anisotropy=None, diameter=
         masks, flows, styles, _ = model.eval(mat, diameter=diameter, channels=channels, anisotropy=anisotropy, channel_axis=channel_axis, z_axis=z_axis, do_3D=do_3D, min_size=min_size, progress=progressbar, normalize = normalize)        
     return masks, flows
 
-def extract_channels(keep_channel, mat):
+def extract_channels(keep_channel, mat, is_4D=True):
     mat2 = mat.copy()
-    channels = range(mat.shape[3])
-    channels_discard = np.array(channels)[[x not in set(keep_channel) for x in channels]]
-    for i in channels_discard:
-        mat2[:,:,:,i] = 0
+
+    if is_4D:
+        channels = range(mat.shape[3])
+        channels_discard = np.array(channels)[[x not in set(keep_channel) for x in channels]]
+    
+        for i in channels_discard:
+            mat2[:,:,:,i] = 0
+    else:
+        channels = range(mat.shape[2])
+        channels_discard = np.array(channels)[[x not in set(keep_channel) for x in channels]]
+    
+        for i in channels_discard:
+            mat2[:,:,i] = 0
     return mat2
 
 def apply_thresh_all_Z(out, bounds):
@@ -204,12 +214,17 @@ def hide_masks(Y, masks_copy, dictionary):
         masks_copy[np.where(masks_copy==i)]=False
         
 
-def run_med_filter(out_float, kernel_size=3):
+def run_med_filter(out_float, kernel=3, is_4D = True):
     out_med = out_float.copy()
 
-    for i in tqdm(range(out_med.shape[0])):
+    if is_4D:
+        for i in tqdm(range(out_med.shape[0])):
+            for j in range(out_med.shape[-1]):
+                out_med[i,:,:,j] = med_filter(matrix=out_float[i,:,:,j], kernel=kernel)
+    else:
         for j in range(out_med.shape[-1]):
-            out_med[i,:,:,j] = signal.medfilt2d(out_float[i,:,:,j], kernel_size=kernel_size)
+            out_med[:,:,j] = med_filter(matrix=out_float[:,:,j], kernel=kernel)
+        
     return out_med
         
     
@@ -227,12 +242,15 @@ def gamma_correct_channel(image_float, gamma, lower, upper):
     
     return image_corrected
 
-def gamma_correct_image(im, gamma_dict, lower_dict, upper_dict):
+def gamma_correct_image(im, gamma_dict, lower_dict, upper_dict, is_4D=True):
     im_corrected = im.copy()
     
-    for i in range(len(gamma_dict)):
-        im_corrected[:,:,:,i] = gamma_correct_channel(im[:,:,:,i], gamma_dict[i], lower_dict[i], upper_dict[i])
-        
+    if is_4D:
+        for i in range(len(gamma_dict)):
+            im_corrected[:,:,:,i] = gamma_correct_channel(im[:,:,:,i], gamma_dict[i], lower_dict[i], upper_dict[i])
+    else:
+        for i in range(len(gamma_dict)):
+            im_corrected[:,:,i] = gamma_correct_channel(im[:,:,i], gamma_dict[i], lower_dict[i], upper_dict[i])
     return im_corrected
 
 def int_to_float(out):
@@ -242,22 +260,24 @@ def float_to_int(out):
     return (out*255).astype('uint8')
 
 def display_image(out_float, kernel_size, show, gamma_dict, background_dict, lower_dict, upper_dict, Zi):
+    
+    matrix = out_float[Zi]
+    
     # run med filter to remove noise
-    out_med = run_med_filter(out_float, kernel_size = kernel_size)
+    out_med = run_med_filter(matrix, kernel = kernel_size, is_4D = False)
 
     # perform gamma correction for visualization
-    out_med_gamma = gamma_correct_image(out_med, gamma_dict, lower_dict, upper_dict)
+    out_med_gamma = gamma_correct_image(out_med, gamma_dict, lower_dict, upper_dict, is_4D = False)
     
 
     # do background subtraction
     out_med_gamma_bgrnd = out_med_gamma#gamma_correct_image(out_med, background_dict)
 
-
     # only show selected channels
-    out_med_gamma_bgrnd_sele = extract_channels(show,out_med_gamma_bgrnd)   
+    out_med_gamma_bgrnd_sele = extract_channels(show,out_med_gamma_bgrnd, is_4D=False)   
     
     # return selected z channel
-    im = Image.fromarray(float_to_int(out_med_gamma_bgrnd_sele)[Zi])
+    im = Image.fromarray(float_to_int(out_med_gamma_bgrnd_sele))
     return im
 
 def on_filter_change(widget_output, out_float, kernel_size, adjust, show, gamma_dict, background_dict, gamma_new_val, background_new_val, lower_dict, upper_dict, upper_new_val, lower_new_val, Zi, change):
@@ -303,14 +323,14 @@ def toggle_filters(out_float):
     f = partial(on_filter_change, widget_output, out_float, median_slider, channel_adjust, channel_show, gamma_dict, background_dict, gamma_slider, background_slider, lower_dict, upper_dict, upper_slider, lower_slider,zi_slider)
     
     channel_show.observe(f, names='value')
-#     channel_adjust.observe(f, names='value')
+    channel_adjust.observe(f, names='value')
 
     zi_slider.observe(f, names='value')
-#     gamma_slider.observe(f, names='value')
-#     median_slider.observe(f, names='value')
-#     background_slider.observe(f, names='value')
-#     lower_slider.observe(f, names='value')
-#     upper_slider.observe(f, names='value')
+    gamma_slider.observe(f, names='value')
+    median_slider.observe(f, names='value')
+    background_slider.observe(f, names='value')
+    lower_slider.observe(f, names='value')
+    upper_slider.observe(f, names='value')
     
     return widgets.VBox([channel_show, channel_adjust, zi_slider, gamma_slider, median_slider, background_slider, lower_slider, upper_slider, widget_output]), median_slider.value, background_dict, gamma_dict, upper_dict, lower_dict
 
@@ -359,6 +379,47 @@ def create_buttons(options, value, description):
 )
     return buttons
 
+@nb.njit(parallel=True)
+def med_filter(matrix, kernel):
+    """
+    Apply a 2D median filter to the input matrix.
+
+    Parameters:
+    - matrix (numpy.ndarray): The input 2D matrix.
+    - kernel (int): The size of the square filter kernel. Should be an odd number.
+
+    Returns:
+    - numpy.ndarray: The filtered matrix of the same shape as the input.
+
+    Note:
+    The function uses the median value within a square window of size 'kernel'
+    centered at each element in the input matrix to calculate the filtered result.
+
+    Example:
+    >>> input_matrix = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+    >>> filtered_matrix = med_filter(input_matrix, kernel=3)
+    """
+    out = matrix.copy()
+    k = (kernel-1)/2
+    Nrow, Ncol = matrix.shape
+    for i in nb.prange(Nrow):
+        for j in range(Ncol):
+            i_lower = i-k
+            i_upper = i+k+1
+            j_lower = j-k
+            j_upper = j+k+1
+
+            if i_upper > Nrow:
+                i_upper = Nrow
+            if i_lower < 0:
+                i_lower = 0
+            if j_upper > Ncol:
+                j_upper = Ncol
+            if j_lower < 0:
+                j_lower = 0 
+
+            out[i,j] = np.median(matrix[int(i_lower):int(i_upper)][:,int(j_lower):int(j_upper)])
+    return out
 
 
 
@@ -412,3 +473,4 @@ def show_im(path, z_slice=10, N_channels=range(3)):
     buttons.observe(g, names='value')
     int_range_v.observe(e, names='value')
     return widgets.VBox([buttons, buttons2, upper_range, lower_range, int_range_v, text, output2]), bounds
+
