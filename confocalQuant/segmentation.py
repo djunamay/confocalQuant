@@ -165,6 +165,25 @@ def do_inference(mat, do_3D, model, progressbar=None, anisotropy=None, diameter=
         masks, flows, styles, _ = model.eval(mat, diameter=diameter, channels=channels, anisotropy=anisotropy, channel_axis=channel_axis, z_axis=z_axis, do_3D=do_3D, min_size=min_size, progress=progressbar, normalize = normalize)        
     return masks, flows
 
+def reduce_to_3D(out_float, is_4D=True):
+    if is_4D:
+        axis = (0,1,2)
+    else:
+        axis = (0,1)
+        
+    temp = np.max(out_float, axis=axis)
+    keep = list(np.where(temp>0)[0])
+    zeros = list(np.where(temp==0)[0])
+
+    for i in range(3-len(keep)):
+        keep.append(zeros[i])
+
+    if is_4D:
+        out_float = out_float[:,:,:,np.sort(keep)]
+    else:
+        out_float = out_float[:,:,np.sort(keep)]
+    return out_float
+
 def extract_channels(keep_channel, mat, is_4D=True):
     mat2 = mat.copy()
 
@@ -174,12 +193,15 @@ def extract_channels(keep_channel, mat, is_4D=True):
     
         for i in channels_discard:
             mat2[:,:,:,i] = 0
+        mat2 = reduce_to_3D(mat2, is_4D=is_4D)
     else:
         channels = range(mat.shape[2])
         channels_discard = np.array(channels)[[x not in set(keep_channel) for x in channels]]
     
         for i in channels_discard:
             mat2[:,:,i] = 0
+        mat2 = reduce_to_3D(mat2, is_4D=is_4D)
+            
     return mat2
 
 def apply_thresh_all_Z(out, bounds):
@@ -316,7 +338,7 @@ def int_to_float(out):
     elif out.dtype=='uint8':
         return out.astype(float)/(2**8)
 
-def float_to_int(out, dtype='uint16'):
+def float_to_int(out, dtype='uint8'):
     if dtype=='uint16':
         return (out*(2**16)).astype('uint16')
     elif dtype=='uint8':
@@ -360,7 +382,7 @@ def display_image(out_float, kernel_size, show, gamma_dict, background_dict, low
     im = Image.fromarray(float_to_int(out_med_gamma_bgrnd_sele))
     return im
 
-def on_filter_change(widget_output, out_float, kernel_size, adjust, show, gamma_dict, background_dict, gamma_new_val, background_new_val, lower_dict, upper_dict, upper_new_val, lower_new_val, Zi, change):
+def on_filter_change(widget_output, out_float, kernel_size, adjust, show, gamma_dict, background_dict, gamma_new_val, background_new_val, lower_dict, upper_dict, upper_new_val, lower_new_val, Zi,change):
     
     with widget_output:  
         clear_output(wait=True)
@@ -370,7 +392,6 @@ def on_filter_change(widget_output, out_float, kernel_size, adjust, show, gamma_
         update_dict(lower_dict, adjust.value, lower_new_val.value)
         update_dict(upper_dict, adjust.value, upper_new_val.value)
     
-        # print(gamma_dict)
         # print(background_dict)
         # print(lower_dict)
         # print(upper_dict)
@@ -379,6 +400,12 @@ def on_filter_change(widget_output, out_float, kernel_size, adjust, show, gamma_
         
         display(display_image(out_float, kernel_size.value, show.value, gamma_dict, background_dict, lower_dict, upper_dict, Zi.value))
 
+
+def create_init_dict(N_channels, val):
+    empty_dict = {}
+    for i in range(N_channels):
+        empty_dict[i] = val
+    return empty_dict
     
 def toggle_filters(out_float):
 
@@ -395,10 +422,10 @@ def toggle_filters(out_float):
 
     widget_output = widgets.Output()
     
-    gamma_dict = {0:1, 1:1, 2:1}
-    lower_dict = {0:0, 1:0, 2:0}
-    upper_dict = {0:100, 1:100, 2:100}
-    background_dict = {0:0, 1:0, 2:0}
+    gamma_dict = create_init_dict(N_channels, 1)
+    lower_dict = create_init_dict(N_channels, 0)
+    upper_dict = create_init_dict(N_channels, 100)
+    background_dict = create_init_dict(N_channels, 0)
     
     f = partial(on_filter_change, widget_output, out_float, median_slider, channel_adjust, channel_show, gamma_dict, background_dict, gamma_slider, background_slider, lower_dict, upper_dict, upper_slider, lower_slider,zi_slider)
     
