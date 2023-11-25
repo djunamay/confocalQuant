@@ -334,15 +334,15 @@ def gamma_correct_image(im, gamma_dict, lower_dict, upper_dict, is_4D=True):
 
 def int_to_float(out):
     if out.dtype=='uint16':
-        return out.astype(float)/(2**16)
+        return out.astype(float)/((2**16)-1)
     elif out.dtype=='uint8':
-        return out.astype(float)/(2**8)
+        return out.astype(float)/((2**8)-1)
 
 def float_to_int(out, dtype='uint8'):
     if dtype=='uint16':
-        return (out*(2**16)).astype('uint16')
+        return (out*((2**16)-1)).astype('uint16')
     elif dtype=='uint8':
-        return (out*(2**8)).astype('uint8')
+        return (out*((2**8)-1)).astype('uint8')
 
 @nb.njit(parallel=True)
 def bgrnd_subtract(matrix, percentile):
