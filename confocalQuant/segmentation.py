@@ -9,6 +9,22 @@ from skimage.segmentation import find_boundaries
 import matplotlib.pyplot as plt
 from scipy import signal
 import numba as nb
+import os
+
+
+import numpy as np
+from aicsimageio import AICSImage
+import torch as ch
+from tqdm import tqdm
+from os import path
+
+import argparse
+from distutils.util import strtobool
+import os
+
+import ast
+
+from cellpose import models
 
 from .widgets import buttons, upper_range, int_range_v, lower_range, dropdown_soma, dropdown_nuc, buttons2, text, int_range_seg
 
@@ -108,6 +124,35 @@ def show_im(path, z_slice=10, N_channels=range(3)):
     buttons.observe(g, names='value')
     int_range_v.observe(e, names='value')
     return widgets.VBox([buttons, buttons2, upper_range, lower_range, int_range_v, text, output2]), bounds
+
+def get_czi_files(directory): # this function is chatGPT3
+    files = [file for file in os.listdir(directory) if file.endswith(".czi")]
+    return sorted(files)
+
+def extract_sbatch_parameters(file_path):
+    parameters = {}
+
+    with open(file_path, 'r') as file:
+        for line in file:
+            line = line.strip()
+
+            # Ignore comments
+            if line.startswith("#"):
+                continue
+
+            # Extract key-value pairs or parameters in list form
+            parts = line.split()
+            if len(parts) >= 2:
+                key, *values = parts
+                if '\\' in values:
+                    # Handle parameters in the form of "--key value1 value2 \"
+                    values = values[:values.index('\\')]
+                parameters[key] = values
+            elif len(parts) == 1:
+                # Handle parameters in list form
+                parameters.setdefault('list_parameters', []).extend(parts)
+
+    return parameters
 
 def get_anisotropy(img):
     temp = img.physical_pixel_sizes
@@ -227,7 +272,19 @@ def run_med_filter(out_float, kernel=3, is_4D = True):
         
     return out_med
         
-    
+
+def show_meanproj_with_outlines(mat2, masks):
+    max_proj = np.mean(mat2, axis=(0))
+
+    for i in tqdm(range(masks.shape[0])):
+        M = find_boundaries(masks[i], mode = 'outer', background = 0)
+        max_proj[:,:,0][np.where(M)] = 255
+        max_proj[:,:,1][np.where(M)] = 255
+        max_proj[:,:,2][np.where(M)] = 255
+
+
+    return max_proj
+
 def gamma_correct_channel(image_float, gamma, lower, upper):
     
     # threshold 
@@ -254,10 +311,16 @@ def gamma_correct_image(im, gamma_dict, lower_dict, upper_dict, is_4D=True):
     return im_corrected
 
 def int_to_float(out):
-    return out.astype(float)/255
+    if out.dtype=='uint16':
+        return out.astype(float)/(2**16)
+    elif out.dtype=='uint8':
+        return out.astype(float)/(2**8)
 
-def float_to_int(out):
-    return (out*255).astype('uint8')
+def float_to_int(out, dtype='uint16'):
+    if dtype=='uint16':
+        return (out*(2**16)).astype('uint16')
+    elif dtype=='uint8':
+        return (out*(2**8)).astype('uint8')
 
 @nb.njit(parallel=True)
 def bgrnd_subtract(matrix, percentile):

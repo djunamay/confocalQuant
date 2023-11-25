@@ -39,7 +39,7 @@ def process_image(folder, im_path, ID, model, channels, y_channel, kernel, per_c
     else:
         mode = 'r+'
 
-    all_mat = np.lib.format.open_memmap(mmap_1, shape=(NZi, xi_per_job, yi_per_job, len(channels)), dtype='uint8', mode=mode)
+    all_mat = np.lib.format.open_memmap(mmap_1, shape=(NZi, xi_per_job, yi_per_job, len(channels)), dtype=float, mode=mode)
     all_masks = np.lib.format.open_memmap(path.join(folder, 'masks.npy'), shape=(NZi, xi_per_job, yi_per_job), dtype='uint16', mode=mode)
     all_Y = np.lib.format.open_memmap(path.join(folder, 'Y_filtered.npy'), shape=(Ncells, len(channels)+2), dtype=float, mode=mode)
     Ncells_per_job = np.lib.format.open_memmap(path.join(folder, 'Ncells_per_job.npy'), shape=(Njobs,1), dtype=int, mode=mode)
@@ -63,6 +63,9 @@ def process_image(folder, im_path, ID, model, channels, y_channel, kernel, per_c
 
     # run inference
     print('doing inference')
+    anisotropy = get_anisotropy(img)
+    print('Anisotropy: ' + str(anisotropy))
+    
     masks, flows = do_inference(out_float_subtract, do_3D=True, model=model, anisotropy=anisotropy, diameter=diameter, channels=inf_channels, channel_axis=3, z_axis=0, min_size=min_size, normalize = False)
         
     # get expectations
