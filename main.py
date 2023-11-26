@@ -8,7 +8,7 @@ import torch as ch
 from tqdm import tqdm
 from os import path
 
-from confocalQuant.segmentation import load_3D, int_to_float, run_med_filter, bgrnd_subtract, get_anisotropy, do_inference,  sigmoid
+from confocalQuant.segmentation import load_3D, int_to_float, run_med_filter, bgrnd_subtract, get_anisotropy, do_inference,  sigmoid, gamma_correct_image
 from confocalQuant.quantification import get_all_expectations
 
 import argparse
@@ -31,7 +31,7 @@ def get_czi_files(directory): # this function is chatGPT3
     files = [file for file in os.listdir(directory) if file.endswith(".czi")]
     return sorted(files)
 
-def process_image(folder, im_path, ID, model, channels, y_channel, kernel, per_channel_subtraction_vals, diameter, inf_channels, min_size, Ncells, NZi, start_Y, start_zi, xi_per_job, yi_per_job, Njobs):
+def process_image(folder, im_path, ID, model, channels, y_channel, kernel, per_channel_subtraction_vals, diameter, inf_channels, min_size, Ncells, NZi, start_Y, start_zi, xi_per_job, yi_per_job, Njobs, gamma_dict, lower_thresh_dict, upper_thresh_dict):
     mmap_1 = path.join(folder, 'mat.npy')
 
     if not path.exists(mmap_1):
@@ -60,6 +60,11 @@ def process_image(folder, im_path, ID, model, channels, y_channel, kernel, per_c
     # run background subtraction 
     print('running background subtraction')
     out_float_subtract = bgrnd_subtract(out_med, np.array(per_channel_subtraction_vals))
+
+    # run upper thresholding
+    print('upper threshold')
+    
+    out_float_subtract = gamma_correct_image(out_float_subtract, gamma_dict, lower_thresh_dict, upper_thresh_dict)
 
     # run inference
     print('doing inference')
@@ -115,7 +120,10 @@ if __name__ == '__main__':
     parser.add_argument('--xi_per_job', type=int, required=True)
     parser.add_argument('--yi_per_job', type=int, required=True)
     parser.add_argument('--Njobs', type=int, required=True)
-    
+    parser.add_argument('--gamma_dict', type=parse_dict, required=True)
+    parser.add_argument('--lower_thresh_dict', type=parse_dict, required=True)
+    parser.add_argument('--upper_thresh_dict', type=parse_dict, required=True)
+
     args = parser.parse_args()
     cells_per_job = args.cells_per_job
     zi_per_job = args.zi_per_job
@@ -133,7 +141,7 @@ if __name__ == '__main__':
     print(im_path)
     
     print('starting processing')
-    process_image(args.folder, im_path, ID, model, args.channels, args.y_channel, args.kernel, args.bgrnd_subtraction_vals, args.diameter, args.inf_channels, args.min_size, args.Ncells, args.NZi, start_Y, start_zi, args.xi_per_job, args.yi_per_job, args.Njobs)
+    process_image(args.folder, im_path, ID, model, args.channels, args.y_channel, args.kernel, args.bgrnd_subtraction_vals, args.diameter, args.inf_channels, args.min_size, args.Ncells, args.NZi, start_Y, start_zi, args.xi_per_job, args.yi_per_job, args.Njobs, args.gamma_dict, args.lower_thresh_dict, args.upper_thresh_dict)
     
     
     
