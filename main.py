@@ -64,23 +64,23 @@ def process_image(folder, im_path, ID, model, channels, y_channel, kernel, per_c
     # run upper thresholding
     print('upper threshold')
     
-    out_float_subtract = gamma_correct_image(out_float_subtract, gamma_dict, lower_thresh_dict, upper_thresh_dict)
+    out_float_subtract_correct = gamma_correct_image(out_float_subtract, gamma_dict, lower_thresh_dict, upper_thresh_dict)
 
     # run inference
     print('doing inference')
     anisotropy = get_anisotropy(img)
     print('Anisotropy: ' + str(anisotropy))
     
-    masks, flows = do_inference(out_float_subtract, do_3D=True, model=model, anisotropy=anisotropy, diameter=diameter, channels=inf_channels, channel_axis=3, z_axis=0, min_size=min_size, normalize = False)
+    masks, flows = do_inference(out_float_subtract_correct, do_3D=True, model=model, anisotropy=anisotropy, diameter=diameter, channels=inf_channels, channel_axis=3, z_axis=0, min_size=min_size, normalize = False)
         
     # get expectations
     print('computing expectations')
     probs = sigmoid(flows[2])
-    Y = get_all_expectations(out_float_subtract, probs, masks)
+    Y = get_all_expectations(out_float, probs, masks)
   
     # remove background mean for channel of interest
     print('processing Y')
-    channel_zero_bgrnd_mean = np.mean(out_float_subtract[:,:,:,y_channel][masks==0])
+    channel_zero_bgrnd_mean = np.mean(out_float[:,:,:,y_channel][masks==0])
     Y = np.concatenate((Y, (Y[:,y_channel]-channel_zero_bgrnd_mean).reshape(-1,1)), axis=1)
     
     # add image ID
@@ -88,11 +88,11 @@ def process_image(folder, im_path, ID, model, channels, y_channel, kernel, per_c
     
     # save mat, masks, and Y_filtered
     print('saving..')
-    actual_NZi = out_float_subtract.shape[0]
+    actual_NZi = out_float.shape[0]
     actual_Ncells = Y.shape[0]
     
     end_zi = start_zi + actual_NZi
-    all_mat[start_zi:end_zi] = out_float_subtract
+    all_mat[start_zi:end_zi] = out_float
     all_masks[start_zi:end_zi] = masks
     end_Y = start_Y + actual_Ncells
     all_Y[start_Y:end_Y] = Y
