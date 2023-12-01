@@ -152,11 +152,11 @@ def modify_keep_files(keep_files, ids_to_remove):
 def add_scale_bar(size, img, plt):
     end = np.round(size/img.physical_pixel_sizes[2])
     for i in range(3):
-        plt[980:990,20:(20+int(end)),i] = 1
+        plt[50:60,20:(20+int(end)),i] = 1
         
 def plot_axis(axes, plt, i, size, img):
     add_scale_bar(size, img, plt)
-    axes[i].imshow(plt)
+    axes[i].imshow(plt, origin = 'lower')
     axes[i].set_xticks([])
     axes[i].set_yticks([])
     axes[i].axis('off')
@@ -165,7 +165,7 @@ def add_inset(axes, i, plt):
     axin = axes[i].inset_axes([.57, .57, 0.43, 0.43])
     axin.set_xlim(200, 400)
     axin.set_ylim(400, 600)
-    axin.imshow(plt, origin = 'lower')
+    axin.imshow(plt)
     axes[i].indicate_inset_zoom(axin)
     axin.set_xticks([])
     axin.set_yticks([])
