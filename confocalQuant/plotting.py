@@ -4,6 +4,9 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from os import path
 from scipy.stats import ttest_ind
+from matplotlib.patches import Rectangle
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+from aicsimageio import AICSImage
 
 def extract_sbatch_parameters(file_path):
     parameters = {}
@@ -144,3 +147,51 @@ def modify_keep_files(keep_files, ids_to_remove):
     idx = np.argwhere([x in ids_to_remove for x in keep_files])
     keep_files = keep_files.pop(idx)
     return keep_files
+
+
+def add_scale_bar(size, img, plt):
+    end = np.round(size/img.physical_pixel_sizes[2])
+    for i in range(3):
+        plt[980:990,20:(20+int(end)),i] = 1
+        
+def plot_axis(axes, plt, i, size, img):
+    add_scale_bar(size, img, plt)
+    axes[i].imshow(plt)
+    axes[i].set_xticks([])
+    axes[i].set_yticks([])
+    axes[i].axis('off')
+
+def add_inset(axes, i, plt):
+    axin = axes[i].inset_axes([.57, .57, 0.43, 0.43])
+    axin.set_xlim(200, 400)
+    axin.set_ylim(400, 600)
+    axin.imshow(plt, origin = 'lower')
+    axes[i].indicate_inset_zoom(axin)
+    axin.set_xticks([])
+    axin.set_yticks([])
+    border = Rectangle((0, 0), 1, 1, color='white', linewidth=5, fill=False, transform=axin.transAxes)
+    axin.add_patch(border)
+    
+def get_id_data(ID, zi_per_job, Nzi, mat, masks):
+    start = ID*zi_per_job
+    end = start + Nzi[ID][0]
+    mat_sele = mat[start:end]
+    mask_sele = masks[start:end]
+    return mat_sele.copy(), mask_sele.copy()
+
+def get_mean_projections(mat, mask, background_dict, gamma_dict, lower_dict, upper_dict, channels, order, mask_channel, maskit=True):
+    mat_sub = bgrnd_subtract(mat, np.array(list(background_dict.values())))
+    if maskit:
+        mat_sub_masked = mat_sub.copy()
+        for x in mask_channel:
+            mat_sub_masked[mask==0,x]=0
+        mat_proj = np.mean(mat_sub_masked, axis = (0))
+    else:
+        mat_proj = np.mean(mat_sub, axis = (0))
+
+    mat_g = gamma_correct_image(mat_proj, gamma_dict, lower_dict, upper_dict, is_4D=False)
+    show = extract_channels(channels, mat_g, is_4D=False)
+    show_ordered = show.copy()
+    for i in range(show_ordered.shape[-1]):
+        show_ordered[:,:,i] = show[:,:,order[i]]
+    return show_ordered
