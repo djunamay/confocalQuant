@@ -162,9 +162,9 @@ def plot_axis(axes, plt, j, i, size, img, collabs, rowlabs):
     axes[j,i].set_yticks([])
     if j==0:
         axes[j,i].xaxis.set_label_position('top')
-        axes[j,i].set_xlabel(collabs[i], fontsize=15)
+        axes[j,i].set_xlabel(collabs[i], fontsize=30)
     if i==0:
-        axes[j,i].set_ylabel(rowlabs[j], fontsize=15)
+        axes[j,i].set_ylabel(rowlabs[j], fontsize=30)
 
 def add_inset(axes, j, i, plt):
     axin = axes[j,i].inset_axes([.57, .57, 0.43, 0.43])
