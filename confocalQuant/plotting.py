@@ -7,6 +7,7 @@ from scipy.stats import ttest_ind
 from matplotlib.patches import Rectangle
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from aicsimageio import AICSImage
+from .segmentation import bgrnd_subtract, gamma_correct_image, extract_channels
 
 def extract_sbatch_parameters(file_path):
     parameters = {}
@@ -195,3 +196,15 @@ def get_mean_projections(mat, mask, background_dict, gamma_dict, lower_dict, upp
     for i in range(show_ordered.shape[-1]):
         show_ordered[:,:,i] = show[:,:,order[i]]
     return show_ordered
+
+
+def compute_avs(data, filename, treatment, line, value):
+    mean_per_filename = data.groupby(filename)[value].mean()
+    mean_per_condition = data.groupby([treatment, line])[value].mean()
+    return mean_per_filename, mean_per_condition
+
+def get_rep_im(treatment, line, all_file_names, mean_per_condition, mean_per_filename):
+    cond_mean = mean_per_condition.loc[treatment][line]
+    filename = mean_per_filename.index[np.argmin(np.abs(mean_per_filename-cond_mean))]
+    ID = np.argwhere([filename in x for x in all_file_names])[0][0]
+    return ID
