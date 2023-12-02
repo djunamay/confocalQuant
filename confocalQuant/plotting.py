@@ -203,8 +203,9 @@ def compute_avs(data, filename, treatment, line, value):
     mean_per_condition = data.groupby([treatment, line])[value].mean()
     return mean_per_filename, mean_per_condition
 
-def get_rep_im(treatment, line, all_file_names, mean_per_condition, mean_per_filename):
+def get_rep_im(treatment, line, all_file_names, mean_per_condition, mean_per_filename, dict_treat, dict_line):
     cond_mean = mean_per_condition.loc[treatment][line]
-    filename = mean_per_filename.index[np.argmin(np.abs(mean_per_filename-cond_mean))]
+    temp = mean_per_filename[[(dict_treat[x]==treatment) & (dict_line[x]==line) for x in mean_per_filename.index]]
+    filename = temp.index[np.argmin(np.abs(temp-cond_mean))]
     ID = np.argwhere([filename in x for x in all_file_names])[0][0]
     return ID
