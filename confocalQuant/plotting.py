@@ -155,19 +155,23 @@ def add_scale_bar(size, img, plt):
     for i in range(3):
         plt[50:60,20:(20+int(end)),i] = 1
         
-def plot_axis(axes, plt, i, size, img):
+def plot_axis(axes, plt, j, i, size, img, collabs, rowlabs):
     add_scale_bar(size, img, plt)
-    axes[i].imshow(plt, origin = 'lower')
-    axes[i].set_xticks([])
-    axes[i].set_yticks([])
-    axes[i].axis('off')
+    axes[j,i].imshow(plt, origin = 'lower')
+    axes[j,i].set_xticks([])
+    axes[j,i].set_yticks([])
+    if j==0:
+        axes[j,i].xaxis.set_label_position('top')
+        axes[j,i].set_xlabel(collabs[i], fontsize=15)
+    if i==0:
+        axes[j,i].set_ylabel(rowlabs[j], fontsize=15)
 
-def add_inset(axes, i, plt):
-    axin = axes[i].inset_axes([.57, .57, 0.43, 0.43])
+def add_inset(axes, j, i, plt):
+    axin = axes[j,i].inset_axes([.57, .57, 0.43, 0.43])
     axin.set_xlim(200, 400)
     axin.set_ylim(400, 600)
     axin.imshow(plt)
-    axes[i].indicate_inset_zoom(axin)
+    axes[j,i].indicate_inset_zoom(axin)
     axin.set_xticks([])
     axin.set_yticks([])
     border = Rectangle((0, 0), 1, 1, color='white', linewidth=5, fill=False, transform=axin.transAxes)
