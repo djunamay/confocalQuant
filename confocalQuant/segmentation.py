@@ -589,6 +589,27 @@ def show_im(path, z_slice=10, N_channels=range(3)):
     int_range_v.observe(e, names='value')
     return widgets.VBox([buttons, buttons2, upper_range, lower_range, int_range_v, text, output2]), bounds
 
+def impose_segmentation_all(ID, zi_per_job, Nzi, mat, masks, val):
+    start = ID*zi_per_job
+    end = start + Nzi[ID][0]
+    mat_sele = mat[start:end]
+    mask_sele = masks[start:end]
+
+    o = [find_boundaries(mask_sele[i], mode = 'outer', background = 0) for i in range(mask_sele.shape[0])]
+    M = np.stack(o, axis=0)
+
+
+    superimposed_data = mat_sele.copy()
+    for i in range(mat_sele.shape[0]):
+        masked = np.where(M[i])
+        
+        for c in range(mat_sele.shape[-1]):
+
+            superimposed_data[i,:,:,c][masked] = val
+        
+    return superimposed_data
+
+
 def impose_segmentation(mask_sele, mat_sele, val):
     o = [find_boundaries(mask_sele[i], mode = 'outer', background = 0) for i in range(mask_sele.shape[0])]
     M = np.stack(o, axis=0)
