@@ -390,7 +390,7 @@ def display_image(out_float, kernel_size, show, gamma_dict, background_dict, low
     im = Image.fromarray(float_to_int(out_med_gamma_bgrnd_sele))
     return im
 
-def on_filter_change(widget_output, out_float, kernel_size, adjust, show, gamma_dict, background_dict, gamma_new_val, background_new_val, lower_dict, upper_dict, upper_new_val, lower_new_val, Zi,change):
+def on_filter_change(widget_output, out_float, kernel_size, adjust, show, gamma_dict, background_dict, gamma_new_val, background_new_val, lower_dict, upper_dict, upper_new_val, lower_new_val, Zi,parent_path, all_files, im_slider, channels, change):
     
     with widget_output:  
         clear_output(wait=True)
@@ -400,28 +400,34 @@ def on_filter_change(widget_output, out_float, kernel_size, adjust, show, gamma_
         update_dict(lower_dict, adjust.value, lower_new_val.value)
         update_dict(upper_dict, adjust.value, upper_new_val.value)
     
-        # print(background_dict)
-        # print(lower_dict)
-        # print(upper_dict)
-        # print(Zi)
-        # print(show)
+        temp = out_float[im_slider.value]
         
-        display(display_image(out_float, kernel_size.value, show.value, gamma_dict, background_dict, lower_dict, upper_dict, Zi.value))
-
+        display(display_image(temp, kernel_size.value, show.value, gamma_dict, background_dict, lower_dict, upper_dict, Zi.value))
 
 def create_init_dict(N_channels, val):
     empty_dict = {}
     for i in range(N_channels):
         empty_dict[i] = val
     return empty_dict
-    
-def toggle_filters(out_float):
 
-    N_channels = out_float.shape[3]
+def import_im(path, channels):
+    img = AICSImage(path)
+    out = load_3D(img, channels)
+    out_float = int_to_float(out)
+    return out_float
+
+def toggle_filters(all_files, parent_path, channels):
+
+    out_float = []
+    for i in tqdm(all_files):
+        out_float.append(import_im(parent_path+i, channels))
+    
+    N_channels = out_float[0].shape[3]
     channel_adjust = create_buttons(range(N_channels), [0], 'Adjust:')
     channel_show = create_buttons(range(N_channels), [1], 'Show:')
     
-    zi_slider = create_slider_int(10, 0, out_float.shape[0]-1, 1, 'Zi:')
+    im_slider = create_slider_int(0, 0, len(all_files)-1, 1, 'File ID:')
+    zi_slider = create_slider_int(10, 0, out_float[0].shape[0]-1, 1, 'Zi:')
     gamma_slider = create_slider_float(1, 0, 5, 0.01, 'gamma:')
     median_slider = create_slider_int(1, 1, 51, 2, 'median:')
     background_slider = create_slider_float(0, 0, 100, 0.01, 'background:')
@@ -435,7 +441,10 @@ def toggle_filters(out_float):
     upper_dict = create_init_dict(N_channels, 100)
     background_dict = create_init_dict(N_channels, 0)
     
-    f = partial(on_filter_change, widget_output, out_float, median_slider, channel_adjust, channel_show, gamma_dict, background_dict, gamma_slider, background_slider, lower_dict, upper_dict, upper_slider, lower_slider,zi_slider)
+    f = partial(on_filter_change, widget_output, out_float, median_slider, channel_adjust, channel_show, gamma_dict, background_dict, gamma_slider, background_slider, lower_dict, upper_dict, upper_slider, lower_slider,zi_slider,parent_path, all_files, im_slider, channels)
+    
+    # e = partial(on_file_change, widget_output, out_float, median_slider, channel_adjust, channel_show, gamma_dict, background_dict, gamma_slider, background_slider, lower_dict, upper_dict, upper_slider, lower_slider,zi_slider, channels, parent_path, all_files, im_slider, median_slider, channel_adjust, channel_show, gamma_slider, background_slider, upper_slider, lower_slider, zi_slider, on_filter_change, f)
+    
     
     channel_show.observe(f, names='value')
     channel_adjust.observe(f, names='value')
@@ -446,8 +455,10 @@ def toggle_filters(out_float):
     background_slider.observe(f, names='value')
     lower_slider.observe(f, names='value')
     upper_slider.observe(f, names='value')
-    
-    return widgets.VBox([channel_show, channel_adjust, zi_slider, gamma_slider, median_slider, background_slider, lower_slider, upper_slider, widget_output]), median_slider.value, background_dict, gamma_dict, upper_dict, lower_dict
+
+    im_slider.observe(f, names='value')
+
+    return widgets.VBox([channel_show, channel_adjust, zi_slider, gamma_slider, median_slider, background_slider, lower_slider, upper_slider, im_slider, widget_output])
 
 def update_dict(dictionary, adjust, new_val):
     for i in adjust:
