@@ -275,11 +275,19 @@ def show_maxproj_with_outlines(mat2, masks):
     return max_proj
     
     
-def hide_masks(Y, masks_copy, dictionary):
-    hide_masks = np.where((Y[:,0]<dictionary[0]) | (Y[:,1]<dictionary[1]) | (Y[:,2]<dictionary[2]))[0]+1
-    for i in hide_masks:
-        masks_copy[np.where(masks_copy==i)]=False
+# def hide_masks(Y, masks_copy, dictionary):
+#     hide_masks = np.where((Y[:,0]<dictionary[0]) | (Y[:,1]<dictionary[1]) | (Y[:,2]<dictionary[2]))[0]+1
+#     for i in hide_masks:
+#         masks_copy[np.where(masks_copy==i)]=False
         
+    
+def hide_masks(data, ID, data_filtered, mask_sele):
+    data_temp = data[data['ID']==ID]
+    hide_masks = np.where([x not in set(data_filtered.index) for x in data_temp.index])[0]
+    mask_copy = mask_sele.copy()
+    for i in hide_masks:
+        mask_copy[mask_copy==i]=0
+    return mask_copy
 
 def run_med_filter(out_float, kernel=3, is_4D = True):
     out_med = out_float.copy()
