@@ -589,12 +589,7 @@ def show_im(path, z_slice=10, N_channels=range(3)):
     int_range_v.observe(e, names='value')
     return widgets.VBox([buttons, buttons2, upper_range, lower_range, int_range_v, text, output2]), bounds
 
-def impose_segmentation(ID, zi_per_job, Nzi, mat, masks, val):
-    start = ID*zi_per_job
-    end = start + Nzi[ID][0]
-    mat_sele = mat[start:end]
-    mask_sele = masks[start:end]
-
+def impose_segmentation(mask_sele, mat_sele, val):
     o = [find_boundaries(mask_sele[i], mode = 'outer', background = 0) for i in range(mask_sele.shape[0])]
     M = np.stack(o, axis=0)
 
