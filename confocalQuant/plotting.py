@@ -119,7 +119,7 @@ def concatenate_Y(files, all_Y, cells_per_job, Ncells_per_job, nuclear_col_idx, 
         start = ID*cells_per_job
         end = start + Ncells_per_job[ID][0]
         temp = all_Y[start:end]
-        temp = temp[(temp[:,nuclear_col_idx]>np.percentile(temp[:,nuclear_col_idx], nuclear_percentile)) & (temp[:,soma_col_idx]>np.percentile(temp[:,soma_col_idx], soma_percentile))]
+        temp = temp[(temp[:,nuclear_col_idx]>=np.percentile(temp[:,nuclear_col_idx], nuclear_percentile)) & (temp[:,soma_col_idx]>=np.percentile(temp[:,soma_col_idx], soma_percentile))]
 
         res.append(temp)
     data = pd.DataFrame(np.vstack(res))
@@ -213,3 +213,29 @@ def get_rep_im(treatment, line, all_file_names, mean_per_condition, mean_per_fil
     filename = temp.index[np.argmin(np.abs(temp-cond_mean))]
     ID = np.argwhere([filename in x for x in all_file_names])[0][0]
     return ID
+
+def filter_data(data, col1, col2, well_col):
+    d1 = data[col1]
+    d2 = data[col2]
+    soma_mean = np.mean(d1)
+    nuc_mean = np.mean(d2)
+    soma_std = np.std(d1)
+    nuc_std = np.std(d2)
+    lower_thresh_soma = soma_mean-(1*soma_std)
+    lower_thresh_dapi = nuc_mean-(1*nuc_std)
+
+    plt.hist(d1,100)
+    plt.axvline(x=lower_thresh_soma, color='red')
+    None
+
+    plt.figure()
+
+    plt.hist(d2,100)
+    plt.axvline(x=lower_thresh_dapi, color='red')
+    None
+
+    data_filtered = data[(d1>lower_thresh_dapi) & (d2>lower_thresh_soma)]
+    x = np.unique(data_filtered[well_col], return_counts=True)
+    filenames_sele = x[0][x[1]>(np.mean(x[1])-np.std(x[1]))]
+    
+    return data_filtered, filenames_sele
