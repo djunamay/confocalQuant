@@ -41,7 +41,7 @@ def process_image(folder, im_path, ID, model, channels, y_channel, kernel, per_c
 
     all_mat = np.lib.format.open_memmap(mmap_1, shape=(NZi, xi_per_job, yi_per_job, len(channels)), dtype=float, mode=mode)
     all_masks = np.lib.format.open_memmap(path.join(folder, 'masks.npy'), shape=(NZi, xi_per_job, yi_per_job), dtype='uint16', mode=mode)
-    all_Y = np.lib.format.open_memmap(path.join(folder, 'Y_filtered.npy'), shape=(Ncells, len(channels)+2), dtype=float, mode=mode)
+    all_Y = np.lib.format.open_memmap(path.join(folder, 'Y.npy'), shape=(Ncells, len(channels)+4), dtype=float, mode=mode)
     Ncells_per_job = np.lib.format.open_memmap(path.join(folder, 'Ncells_per_job.npy'), shape=(Njobs,1), dtype=int, mode=mode)
     Nzi_per_job = np.lib.format.open_memmap(path.join(folder, 'Nzi_per_job.npy'), shape=(Njobs,1), dtype=int, mode=mode)
 
