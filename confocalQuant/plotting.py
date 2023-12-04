@@ -8,6 +8,7 @@ from matplotlib.patches import Rectangle
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from aicsimageio import AICSImage
 from .segmentation import bgrnd_subtract, gamma_correct_image, extract_channels
+import os 
 
 def extract_sbatch_parameters(file_path):
     parameters = {}
@@ -214,15 +215,15 @@ def get_rep_im(treatment, line, all_file_names, mean_per_condition, mean_per_fil
     ID = np.argwhere([filename in x for x in all_file_names])[0][0]
     return ID
 
-def filter_data(data, col1, col2, well_col, C):
+def filter_data(data, col1, col2, well_col, C_nuc, C_soma):
     d1 = data[col1]
     d2 = data[col2]
     soma_mean = np.mean(d1)
     nuc_mean = np.mean(d2)
     soma_std = np.std(d1)
     nuc_std = np.std(d2)
-    lower_thresh_soma = soma_mean-(C*soma_std)
-    lower_thresh_dapi = nuc_mean-(C*nuc_std)
+    lower_thresh_soma = soma_mean-(C_soma*soma_std)
+    lower_thresh_dapi = nuc_mean-(C_nuc*nuc_std)
 
     plt.hist(d1,100)
     plt.axvline(x=lower_thresh_soma, color='red')
@@ -236,7 +237,7 @@ def filter_data(data, col1, col2, well_col, C):
     plt.title(col2)
     None
 
-    data_filtered = data[(d1>lower_thresh_dapi) & (d2>lower_thresh_soma)]
+    data_filtered = data[(d1>lower_thresh_soma) & (d2>lower_thresh_dapi)]
     #x = np.unique(data_filtered[well_col], return_counts=True)
     #filenames_sele = set(x[0][x[1]>(np.mean(x[1])-np.std(x[1]))])
     
