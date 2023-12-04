@@ -241,3 +241,17 @@ def filter_data(data, col1, col2, well_col, C):
     #filenames_sele = set(x[0][x[1]>(np.mean(x[1])-np.std(x[1]))])
     
     return data_filtered
+
+
+def get_out_files(directory): # this function is chatGPT3
+    files = [file for file in os.listdir(directory) if file.endswith(".out")]
+    return sorted(files)
+
+def is_string_present(file_path, target_string):
+    try:
+        with open(file_path, 'r') as file:
+            content = file.read()
+            return target_string in content
+    except FileNotFoundError:
+        print(f"File not found: {file_path}")
+        return False
