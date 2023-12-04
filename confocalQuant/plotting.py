@@ -215,7 +215,7 @@ def get_rep_im(treatment, line, all_file_names, mean_per_condition, mean_per_fil
     ID = np.argwhere([filename in x for x in all_file_names])[0][0]
     return ID
 
-def filter_data(data, col1, col2, well_col, C_nuc, C_soma):
+def filter_data(data, col1, col2, well_col, C_nuc, C_soma, C_nuc_upper):
     d1 = data[col1]
     d2 = data[col2]
     soma_mean = np.mean(d1)
@@ -224,6 +224,7 @@ def filter_data(data, col1, col2, well_col, C_nuc, C_soma):
     nuc_std = np.std(d2)
     lower_thresh_soma = soma_mean-(C_soma*soma_std)
     lower_thresh_dapi = nuc_mean-(C_nuc*nuc_std)
+    upper_thresh_dapi = nuc_mean + (C_nuc_upper*nuc_std)
 
     plt.hist(d1,100)
     plt.axvline(x=lower_thresh_soma, color='red')
@@ -234,10 +235,11 @@ def filter_data(data, col1, col2, well_col, C_nuc, C_soma):
 
     plt.hist(d2,100)
     plt.axvline(x=lower_thresh_dapi, color='red')
+    plt.axvline(x=upper_thresh_dapi, color='blue')
     plt.title(col2)
     None
 
-    data_filtered = data[(d1>lower_thresh_soma) & (d2>lower_thresh_dapi)]
+    data_filtered = data[(d1>lower_thresh_soma) & (d2>lower_thresh_dapi) & (d2<upper_thresh_dapi)]
     #x = np.unique(data_filtered[well_col], return_counts=True)
     #filenames_sele = set(x[0][x[1]>(np.mean(x[1])-np.std(x[1]))])
     
