@@ -416,12 +416,13 @@ def import_im(path, channels):
     out_float = int_to_float(out)
     return out_float
 
-def toggle_filters(all_files, parent_path, channels):
+def toggle_filters(all_files, parent_path, channels, out_float=None):
 
-    out_float = []
-    for i in tqdm(all_files):
-        out_float.append(import_im(parent_path+i, channels))
-    
+    if out_float is None:
+        out_float = []
+        for i in tqdm(all_files):
+            out_float.append(import_im(parent_path+i, channels))
+
     N_channels = out_float[0].shape[3]
     channel_adjust = create_buttons(range(N_channels), [0], 'Adjust:')
     channel_show = create_buttons(range(N_channels), [1], 'Show:')
