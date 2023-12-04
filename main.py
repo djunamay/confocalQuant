@@ -76,7 +76,8 @@ def process_image(folder, im_path, ID, model, channels, y_channel, kernel, per_c
     # get expectations
     print('computing expectations')
     probs = sigmoid(flows[2])
-    Y = get_all_expectations(out_float, probs, masks)
+    volume_per_voxel = np.prod(img.physical_pixel_sizes)
+    Y = get_all_expectations(out_float, probs, masks, volume_per_voxel)
   
     # remove background mean for channel of interest
     print('processing Y')

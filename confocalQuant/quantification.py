@@ -22,11 +22,12 @@ import numpy as np
 #     Y = np.vstack(res)
 #     return Y
 
-def get_per_cell_expectation(matrix, probs, masks, maskID):
+def get_per_cell_expectation(matrix, probs, masks, maskID, volume_per_voxel):
     index = masks==maskID
-    return np.dot(matrix[index], probs[index])/np.sum(index)
+    cell_volume = volume_per_voxel * np.sum(index)
+    return np.dot(matrix[index], probs[index])/cell_volume
 
-def get_all_expectations(matrix, probs, masks):
+def get_all_expectations(matrix, probs, masks, volume_per_voxel):
     nchannels = matrix.shape[3]
     unique_masks = np.unique(masks)[1:]
     N = len(unique_masks)
@@ -37,5 +38,5 @@ def get_all_expectations(matrix, probs, masks):
     
     for j in range(nchannels):
         for i in tqdm(range(N)):
-            out[i,j] = get_per_cell_expectation(matrix[:,:,:,j].ravel(), probs, masks, unique_masks[i])
+            out[i,j] = get_per_cell_expectation(matrix[:,:,:,j].ravel(), probs, masks, unique_masks[i], volume_per_voxel)
     return out
