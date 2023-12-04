@@ -375,16 +375,16 @@ def display_image(out_float, kernel_size, show, gamma_dict, background_dict, low
     # do background subtraction
     out_float_subtract = bgrnd_subtract(out_float, np.array(list(background_dict.values())))
 
-    matrix = out_float_subtract[Zi]
+    # perform gamma correction for visualization
+    out_med_gamma = gamma_correct_image(out_float_subtract, gamma_dict, lower_dict, upper_dict, is_4D = True)
+    
+    matrix = out_med_gamma[Zi]
     
     # run med filter to remove noise
     out_med = run_med_filter(matrix, kernel = kernel_size, is_4D = False)
 
-    # perform gamma correction for visualization
-    out_med_gamma = gamma_correct_image(out_med, gamma_dict, lower_dict, upper_dict, is_4D = False)
-    
     # only show selected channels
-    out_med_gamma_bgrnd_sele = extract_channels(show,out_med_gamma, is_4D=False)   
+    out_med_gamma_bgrnd_sele = extract_channels(show,out_med, is_4D=False)   
     
     # return selected z channel
     im = Image.fromarray(float_to_int(out_med_gamma_bgrnd_sele))
