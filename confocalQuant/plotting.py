@@ -107,7 +107,7 @@ def return_results(path_to_sbatch_file):
 
     all_mat = np.lib.format.open_memmap(path.join('../.'+folder, 'mat.npy'), shape=(NZi, xi_per_job, yi_per_job, len(channels)), dtype=float, mode=mode)
     all_masks = np.lib.format.open_memmap(path.join('../.'+folder, 'masks.npy'), shape=(NZi, xi_per_job, yi_per_job), dtype='uint16', mode=mode)
-    all_Y = np.lib.format.open_memmap(path.join('../.'+folder, 'Y_filtered.npy'), shape=(Ncells, len(channels)+2), dtype=float, mode=mode)
+    all_Y = np.lib.format.open_memmap(path.join('../.'+folder, 'Y.npy'), shape=(Ncells, len(channels)+4), dtype=float, mode=mode)
     Ncells_per_job = np.lib.format.open_memmap(path.join('../.'+folder, 'Ncells_per_job.npy'), shape=(Njobs,1), dtype=int, mode=mode)
     Nzi_per_job = np.lib.format.open_memmap(path.join('../.'+folder, 'Nzi_per_job.npy'), shape=(Njobs,1), dtype=int, mode=mode)
     
@@ -215,11 +215,13 @@ def get_rep_im(treatment, line, all_file_names, mean_per_condition, mean_per_fil
     ID = np.argwhere([filename in x for x in all_file_names])[0][0]
     return ID
 
-def filter_data(data, col1, col2, well_col, C_nuc, C_soma, C_nuc_upper):
+def filter_data(data, col1, col2, col3, well_col, lower_thresh_vol,  upper_thresh_vol, C_nuc, C_soma, C_nuc_upper):
     d1 = data[col1]
     d2 = data[col2]
+    d3 = data[col3]
+    
     soma_mean = np.mean(d1)
-    nuc_mean = np.mean(d2)
+    nuc_mean = np.mean(d2)    
     soma_std = np.std(d1)
     nuc_std = np.std(d2)
     lower_thresh_soma = soma_mean-(C_soma*soma_std)
@@ -239,7 +241,15 @@ def filter_data(data, col1, col2, well_col, C_nuc, C_soma, C_nuc_upper):
     plt.title(col2)
     None
 
-    data_filtered = data[(d1>lower_thresh_soma) & (d2>lower_thresh_dapi) & (d2<upper_thresh_dapi)]
+    plt.figure()
+
+    plt.hist(d3,100)
+    plt.axvline(x=lower_thresh_vol, color='red')
+    plt.axvline(x=upper_thresh_vol, color='blue')
+    plt.title(col3)
+    None
+    
+    data_filtered = data[(d1>lower_thresh_soma) & (d2>lower_thresh_dapi) & (d2<upper_thresh_dapi) & (d3<upper_thresh_vol) & (d3>lower_thresh_vol)]
     #x = np.unique(data_filtered[well_col], return_counts=True)
     #filenames_sele = set(x[0][x[1]>(np.mean(x[1])-np.std(x[1]))])
     
