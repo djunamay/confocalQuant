@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=cellroxneun    # Job name
+#SBATCH --job-name=101323_rox    # Job name
 #SBATCH --mem=15G                     # Job memory request
-#SBATCH --time=00:10:00               # Time limit hrs:min:sec
+#SBATCH --time=00:30:00               # Time limit hrs:min:sec
 #SBATCH --cpus-per-task=20
 #SBATCH --gres=gpu:volta:1
 #SBATCH --array 0-19
@@ -16,12 +16,12 @@ python main.py \
 --impath './data/neuronbatch10132023_cellrox/' \
 --model_type 'cyto2' \
 --channels 0 2 1 3 \
---y_channel 3 \
+--y_channel 2 3 \
 --kernel 1 \
 --bgrnd_subtraction_vals 0 95 0 0 \
 --diameter 20 \
 --inf_channels 2 0 \
---min_size 1000 \
+--min_size 500 \
 --Ncells 12000 \
 --cells_per_job 300 \
 --NZi 1600 \
