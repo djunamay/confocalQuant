@@ -41,7 +41,7 @@ def process_image(folder, im_path, ID, model, channels, y_channel, kernel, per_c
 
     all_mat = np.lib.format.open_memmap(mmap_1, shape=(NZi, xi_per_job, yi_per_job, len(channels)), dtype=float, mode=mode)
     all_masks = np.lib.format.open_memmap(path.join(folder, 'masks.npy'), shape=(NZi, xi_per_job, yi_per_job), dtype='uint16', mode=mode)
-    all_Y = np.lib.format.open_memmap(path.join(folder, 'Y.npy'), shape=(Ncells, len(channels)+4), dtype=float, mode=mode)
+    all_Y = np.lib.format.open_memmap(path.join(folder, 'Y.npy'), shape=(Ncells, len(channels)+len(y_channel)+3), dtype=float, mode=mode)
     Ncells_per_job = np.lib.format.open_memmap(path.join(folder, 'Ncells_per_job.npy'), shape=(Njobs,1), dtype=int, mode=mode)
     Nzi_per_job = np.lib.format.open_memmap(path.join(folder, 'Nzi_per_job.npy'), shape=(Njobs,1), dtype=int, mode=mode)
 
@@ -81,9 +81,10 @@ def process_image(folder, im_path, ID, model, channels, y_channel, kernel, per_c
   
     # remove background mean for channel of interest
     print('processing Y')
-    channel_zero_bgrnd_mean = np.mean(out_float[:,:,:,y_channel][masks==0])
-    Y = np.concatenate((Y, (Y[:,y_channel]-channel_zero_bgrnd_mean).reshape(-1,1)), axis=1)
-    
+    for i in range(len(y_channel)):
+        channel_zero_bgrnd_mean = np.mean(out_float[:,:,:,y_channel[i]][masks==0])
+        Y = np.concatenate((Y, (Y[:,y_channel[i]]-channel_zero_bgrnd_mean).reshape(-1,1)), axis=1)
+
     # add image ID
     Y = np.concatenate((Y, np.repeat(ID, Y.shape[0]).reshape(-1,1)), axis=1)
     
@@ -108,7 +109,7 @@ if __name__ == '__main__':
     parser.add_argument('--impath', type=str, required=True)
     parser.add_argument('--model_type', type=str, required=True, default='cyto2')
     parser.add_argument('--channels', type=int, nargs="+", required=True)
-    parser.add_argument('--y_channel', type=int, required=True)
+    parser.add_argument('--y_channel', type=int, nargs="+", required=True)
     parser.add_argument('--kernel', type=int, required=True)
     parser.add_argument('--bgrnd_subtraction_vals', type=int, nargs="+", required=True)
     parser.add_argument('--diameter', type=int, required=True)
