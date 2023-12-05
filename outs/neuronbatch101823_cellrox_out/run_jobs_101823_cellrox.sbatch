@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=101823_rox    # Job name
 #SBATCH --mem=15G                     # Job memory request
-#SBATCH --time=00:10:00               # Time limit hrs:min:sec
+#SBATCH --time=00:30:00               # Time limit hrs:min:sec
 #SBATCH --cpus-per-task=20
 #SBATCH --gres=gpu:volta:1
 #SBATCH --array 0-21
@@ -18,8 +18,8 @@ python main.py \
 --channels 0 1 2 \
 --y_channel 2 \
 --kernel 1 \
---bgrnd_subtraction_vals 0 95 0 0 \
---diameter 17 \
+--bgrnd_subtraction_vals 0 95 0 \
+--diameter 20 \
 --inf_channels 2 0 \
 --min_size 500 \
 --Ncells 6900 \
@@ -31,4 +31,4 @@ python main.py \
 --Njobs 22 \
 --gamma_dict '{0: 1, 1: 1, 2: 1}' \
 --lower_thresh_dict '{0: 0, 1: 0, 2: 0}' \
---upper_thresh_dict '{0: 100, 1: 99.5, 2: 100}'
+--upper_thresh_dict '{0: 100, 1: 99.9, 2: 100}'
