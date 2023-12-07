@@ -217,7 +217,7 @@ def get_rep_im(treatment, line, all_file_names, mean_per_condition, mean_per_fil
     ID = np.argwhere([filename in x for x in all_file_names])[0][0]
     return ID
 
-def filter_data(data, col1, col2, col3, well_col, lower_thresh_vol,  upper_thresh_vol, C_nuc, C_soma, C_nuc_upper):
+def filter_data(data, col1, col2, col3, well_col, lower_thresh_vol,  upper_thresh_vol, C_nuc, C_soma, C_nuc_upper, plot = True):
     d1 = data[col1]
     d2 = data[col2]
     d3 = data[col3]
@@ -230,26 +230,27 @@ def filter_data(data, col1, col2, col3, well_col, lower_thresh_vol,  upper_thres
     lower_thresh_dapi = nuc_mean-(C_nuc*nuc_std)
     upper_thresh_dapi = nuc_mean + (C_nuc_upper*nuc_std)
 
-    plt.hist(d1,100)
-    plt.axvline(x=lower_thresh_soma, color='red')
-    plt.title(col1)
-    None
+    if plot:
+        plt.hist(d1,100)
+        plt.axvline(x=lower_thresh_soma, color='red')
+        plt.title(col1)
+        None
 
-    plt.figure()
+        plt.figure()
 
-    plt.hist(d2,100)
-    plt.axvline(x=lower_thresh_dapi, color='red')
-    plt.axvline(x=upper_thresh_dapi, color='blue')
-    plt.title(col2)
-    None
+        plt.hist(d2,100)
+        plt.axvline(x=lower_thresh_dapi, color='red')
+        plt.axvline(x=upper_thresh_dapi, color='blue')
+        plt.title(col2)
+        None
 
-    plt.figure()
+        plt.figure()
 
-    plt.hist(d3,100)
-    plt.axvline(x=lower_thresh_vol, color='red')
-    plt.axvline(x=upper_thresh_vol, color='blue')
-    plt.title(col3)
-    None
+        plt.hist(d3,100)
+        plt.axvline(x=lower_thresh_vol, color='red')
+        plt.axvline(x=upper_thresh_vol, color='blue')
+        plt.title(col3)
+        None
     
     data_filtered = data[(d1>lower_thresh_soma) & (d2>lower_thresh_dapi) & (d2<upper_thresh_dapi) & (d3<upper_thresh_vol) & (d3>lower_thresh_vol)]
     #x = np.unique(data_filtered[well_col], return_counts=True)

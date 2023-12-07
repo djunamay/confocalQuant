@@ -5,7 +5,6 @@ from IPython.display import clear_output
 from PIL import Image
 import ipywidgets as widgets
 from tqdm import tqdm
-from skimage.segmentation import find_boundaries
 import matplotlib.pyplot as plt
 from scipy import signal
 import numba as nb
