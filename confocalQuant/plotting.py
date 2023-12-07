@@ -91,7 +91,7 @@ def plot_violin(data, name, colname, baseline, treatment):
     plt.text(x_pos, y_pos, f'P-Value: {p_value:.3f}', ha='center', va='center', color='red')
     
 
-def return_results(path_to_sbatch_file):
+def return_results(path_to_sbatch_file, prefix):
     # get data and params
     params = extract_sbatch_parameters(path_to_sbatch_file)
     folder = params['--folder'][0][1:-1]
@@ -105,11 +105,11 @@ def return_results(path_to_sbatch_file):
     mode = 'r'
     zi_per_job = int(params['--zi_per_job'][0])
 
-    all_mat = np.lib.format.open_memmap(path.join('../.'+folder, 'mat.npy'), shape=(NZi, xi_per_job, yi_per_job, len(channels)), dtype=float, mode=mode)
-    all_masks = np.lib.format.open_memmap(path.join('../.'+folder, 'masks.npy'), shape=(NZi, xi_per_job, yi_per_job), dtype='uint16', mode=mode)
-    all_Y = np.lib.format.open_memmap(path.join('../.'+folder, 'Y.npy'), shape=(Ncells, len(channels)+4), dtype=float, mode=mode)
-    Ncells_per_job = np.lib.format.open_memmap(path.join('../.'+folder, 'Ncells_per_job.npy'), shape=(Njobs,1), dtype=int, mode=mode)
-    Nzi_per_job = np.lib.format.open_memmap(path.join('../.'+folder, 'Nzi_per_job.npy'), shape=(Njobs,1), dtype=int, mode=mode)
+    all_mat = np.lib.format.open_memmap(path.join(prefix + folder, 'mat.npy'), shape=(NZi, xi_per_job, yi_per_job, len(channels)), dtype=float, mode=mode)
+    all_masks = np.lib.format.open_memmap(path.join(prefix + folder, 'masks.npy'), shape=(NZi, xi_per_job, yi_per_job), dtype='uint16', mode=mode)
+    all_Y = np.lib.format.open_memmap(path.join(prefix + folder, 'Y.npy'), shape=(Ncells, len(channels)+4), dtype=float, mode=mode)
+    Ncells_per_job = np.lib.format.open_memmap(path.join(prefix + folder, 'Ncells_per_job.npy'), shape=(Njobs,1), dtype=int, mode=mode)
+    Nzi_per_job = np.lib.format.open_memmap(path.join(prefix + folder, 'Nzi_per_job.npy'), shape=(Njobs,1), dtype=int, mode=mode)
     
     return all_mat, all_masks, all_Y, Ncells_per_job, Nzi_per_job, cells_per_job, zi_per_job
 
@@ -136,10 +136,12 @@ def add_metadata(data, path_to_meta):
     df = pd.read_csv(path_to_meta)
     dictionary1 = dict(zip(df['filename'], df['treatment']))
     dictionary2 = dict(zip(df['filename'], df['line']))
-
+    
     data['treatment'] = [dictionary1[x] for x in data['filename']]
     data['line'] = [dictionary2[x] for x in data['filename']]
-    
+
+        
+
 def exclude_files(exclude, files):
     exclude = set(np.argwhere([x.split('.')[0] in exclude for x in files]).reshape(-1))
     IDS = np.argwhere([x not in exclude for x in range(len(files))]).reshape(-1)
