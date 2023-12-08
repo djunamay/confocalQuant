@@ -1,7 +1,7 @@
 import numpy.ma as ma
 from tqdm import tqdm
 import numpy as np
-
+import pandas as pd
 # def compute_single_expectation_per_cell(Y, P, N):
 #     return ma.sum(ma.multiply(Y,P))*(1/N)
 
@@ -46,3 +46,16 @@ def get_all_expectations(matrix, probs, masks, volume_per_voxel):
     return out
 
 
+
+def concatenate_Y(Nfiles, all_Y, cells_per_job, Ncells_per_job, colnames):
+    res = []
+    for ID in range(Nfiles):
+        start = ID*cells_per_job
+        end = start + Ncells_per_job[ID][0]
+        temp = all_Y[start:end]
+        res.append(temp)
+        
+    data = pd.DataFrame(np.vstack(res))
+    data.columns = colnames 
+    
+    return data
