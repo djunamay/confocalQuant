@@ -432,7 +432,7 @@ def toggle_filters(all_files, parent_path, channels, out_float=None):
     median_slider = create_slider_int(1, 1, 51, 2, 'median:')
     background_slider = create_slider_float(0, 0, 100, 0.01, 'background:')
     lower_slider = create_slider_float(0, 0, 100, 0.01, 'lower:')
-    upper_slider = create_slider_float(100, 0, 100, 0.01, 'upper:')
+    upper_slider = create_slider_float(100, 90, 100, 0.01, 'upper:')
 
     widget_output = widgets.Output()
     
