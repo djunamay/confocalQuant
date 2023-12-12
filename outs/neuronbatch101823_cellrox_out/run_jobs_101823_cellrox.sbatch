@@ -18,10 +18,10 @@ python main.py \
 --channels 0 1 2 \
 --y_channel 2 \
 --kernel 1 \
---bgrnd_subtraction_vals 0 95 0 \
---diameter 20 \
+--bgrnd_subtraction_vals 0 0 0 \
+--diameter 15 \
 --inf_channels 2 0 \
---min_size 500 \
+--min_size 300 \
 --Ncells 6900 \
 --cells_per_job 300 \
 --NZi 920 \
@@ -31,4 +31,6 @@ python main.py \
 --Njobs 22 \
 --gamma_dict '{0: 1, 1: 1, 2: 1}' \
 --lower_thresh_dict '{0: 0, 1: 0, 2: 0}' \
---upper_thresh_dict '{0: 100, 1: 99.9, 2: 100}'
+--upper_thresh_dict '{0: 100, 1: 100, 2: 100}' \
+--outdir './outs/all_outs/segmentations/1018_cellrox/'
+
