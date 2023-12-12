@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from scipy import signal
 import numba as nb
 import os
+from skimage.segmentation import find_boundaries
 
 
 import numpy as np
@@ -317,8 +318,15 @@ def show_meanproj_with_outlines(mat2, masks):
 def gamma_correct_channel(image_float, gamma, lower, upper):
     
     # threshold 
-    lower = np.percentile(image_float, lower)
-    upper = np.percentile(image_float, upper)
+    if lower==0:
+        lower=0
+    else:
+        lower = np.percentile(image_float, lower)
+    
+    if upper==100:
+        upper=1
+    else:
+        upper = np.percentile(image_float, upper)
     
     # Clip the values to be in the valid range [0, 1]
     image_float = np.clip((image_float-lower)/(upper-lower), a_min = 0, a_max = 1)
@@ -332,10 +340,10 @@ def gamma_correct_image(im, gamma_dict, lower_dict, upper_dict, is_4D=True):
     im_corrected = im.copy()
     
     if is_4D:
-        for i in range(len(gamma_dict)):
+        for i in range(im.shape[-1]):
             im_corrected[:,:,:,i] = gamma_correct_channel(im[:,:,:,i], gamma_dict[i], lower_dict[i], upper_dict[i])
     else:
-        for i in range(len(gamma_dict)):
+        for i in range(im.shape[-1]):
             im_corrected[:,:,i] = gamma_correct_channel(im[:,:,i], gamma_dict[i], lower_dict[i], upper_dict[i])
     return im_corrected
 
@@ -355,7 +363,10 @@ def float_to_int(out, dtype='uint8'):
 def bgrnd_subtract(matrix, percentile):
     res = []
     for i in range(matrix.shape[-1]):
-        res.append(estimate_percentile(matrix, percentile[i], i))
+        if percentile[i]==0:
+            res.append(0)
+        else:
+            res.append(estimate_percentile(matrix, percentile[i], i))
 
     out = matrix-np.array(res)
     

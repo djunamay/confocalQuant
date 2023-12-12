@@ -110,8 +110,9 @@ def return_results(path_to_sbatch_file, prefix):
     all_Y = np.lib.format.open_memmap(path.join(prefix + folder, 'Y.npy'), shape=(Ncells, len(channels)+4), dtype=float, mode=mode)
     Ncells_per_job = np.lib.format.open_memmap(path.join(prefix + folder, 'Ncells_per_job.npy'), shape=(Njobs,1), dtype=int, mode=mode)
     Nzi_per_job = np.lib.format.open_memmap(path.join(prefix + folder, 'Nzi_per_job.npy'), shape=(Njobs,1), dtype=int, mode=mode)
+    randID_per_job = np.lib.format.open_memmap(path.join(prefix + folder, 'randomID_per_job.npy'), shape=(Njobs,1), dtype=int, mode=mode)
     
-    return all_mat, all_masks, all_Y, Ncells_per_job, Nzi_per_job, cells_per_job, zi_per_job
+    return all_mat, all_masks, all_Y, Ncells_per_job, Nzi_per_job, cells_per_job, zi_per_job, randID_per_job
 
 
 def concatenate_Y(files, all_Y, cells_per_job, Ncells_per_job, nuclear_col_idx, soma_col_idx, nuclear_percentile, soma_percentile, colnames):

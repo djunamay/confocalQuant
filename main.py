@@ -109,7 +109,7 @@ def process_image(folder, im_path, ID, model, channels, y_channel, kernel, per_c
     if not path.exists(outdir):
         os.makedirs(outdir)
     randomID = save_mean_proj(out_float, masks, outdir)
-    print(random_ID)
+    print(randomID)
     
     # save mat, masks, and Y_filtered
     print('saving..')
