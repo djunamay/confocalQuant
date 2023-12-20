@@ -107,12 +107,12 @@ def return_results(path_to_sbatch_file, prefix):
 
     all_mat = np.lib.format.open_memmap(path.join(prefix + folder, 'mat.npy'), shape=(NZi, xi_per_job, yi_per_job, len(channels)), dtype=float, mode=mode)
     all_masks = np.lib.format.open_memmap(path.join(prefix + folder, 'masks.npy'), shape=(NZi, xi_per_job, yi_per_job), dtype='uint16', mode=mode)
-    all_Y = np.lib.format.open_memmap(path.join(prefix + folder, 'Y.npy'), shape=(Ncells, len(channels)+4), dtype=float, mode=mode)
-    Ncells_per_job = np.lib.format.open_memmap(path.join(prefix + folder, 'Ncells_per_job.npy'), shape=(Njobs,1), dtype=int, mode=mode)
+    #all_Y = np.lib.format.open_memmap(path.join(prefix + folder, 'Y.npy'), shape=(Ncells, len(channels)+4), dtype=float, mode=mode)
+    #Ncells_per_job = np.lib.format.open_memmap(path.join(prefix + folder, 'Ncells_per_job.npy'), shape=(Njobs,1), dtype=int, mode=mode)
     Nzi_per_job = np.lib.format.open_memmap(path.join(prefix + folder, 'Nzi_per_job.npy'), shape=(Njobs,1), dtype=int, mode=mode)
     randID_per_job = np.lib.format.open_memmap(path.join(prefix + folder, 'randomID_per_job.npy'), shape=(Njobs,1), dtype=int, mode=mode)
     
-    return all_mat, all_masks, all_Y, Ncells_per_job, Nzi_per_job, cells_per_job, zi_per_job, randID_per_job
+    return all_mat, all_masks, Nzi_per_job, cells_per_job, zi_per_job, randID_per_job
 
 
 def concatenate_Y(files, all_Y, cells_per_job, Ncells_per_job, nuclear_col_idx, soma_col_idx, nuclear_percentile, soma_percentile, colnames):
@@ -188,7 +188,7 @@ def get_id_data(ID, zi_per_job, Nzi, mat, masks):
     mask_sele = masks[start:end]
     return mat_sele.copy(), mask_sele.copy()
 
-def get_mean_projections(mat, mask, background_dict, gamma_dict, lower_dict, upper_dict, channels, order, mask_channel, maskit=True):
+def get_mean_projections(mat, mask, background_dict, gamma_dict, lower_dict, upper_dict, channels, order, mask_channel, maskit=True, percentile=True):
     mat_sub = bgrnd_subtract(mat, np.array(list(background_dict.values())))
     if maskit:
         mat_sub_masked = mat_sub.copy()
@@ -198,7 +198,7 @@ def get_mean_projections(mat, mask, background_dict, gamma_dict, lower_dict, upp
     else:
         mat_proj = np.mean(mat_sub, axis = (0))
 
-    mat_g = gamma_correct_image(mat_proj, gamma_dict, lower_dict, upper_dict, is_4D=False)
+    mat_g = gamma_correct_image(mat_proj, gamma_dict, lower_dict, upper_dict, is_4D=False, percentile=percentile)
     show = extract_channels(channels, mat_g, is_4D=False)
     show_ordered = show.copy()
     for i in range(show_ordered.shape[-1]):

@@ -315,18 +315,19 @@ def show_meanproj_with_outlines(mat2, masks):
 
     return max_proj
 
-def gamma_correct_channel(image_float, gamma, lower, upper):
+def gamma_correct_channel(image_float, gamma, lower, upper, percentile):
     
-    # threshold 
-    if lower==0:
-        lower=0
-    else:
-        lower = np.percentile(image_float, lower)
-    
-    if upper==100:
-        upper=1
-    else:
-        upper = np.percentile(image_float, upper)
+    if percentile:
+        # threshold 
+        if lower==0:
+            lower=0
+        else:
+            lower = np.percentile(image_float, lower)
+
+        if upper==100:
+            upper=1
+        else:
+            upper = np.percentile(image_float, upper)
     
     # Clip the values to be in the valid range [0, 1]
     image_float = np.clip((image_float-lower)/(upper-lower), a_min = 0, a_max = 1)
@@ -336,15 +337,15 @@ def gamma_correct_channel(image_float, gamma, lower, upper):
     
     return image_corrected
 
-def gamma_correct_image(im, gamma_dict, lower_dict, upper_dict, is_4D=True):
+def gamma_correct_image(im, gamma_dict, lower_dict, upper_dict, is_4D=True, percentile=True):
     im_corrected = im.copy()
     
     if is_4D:
         for i in range(im.shape[-1]):
-            im_corrected[:,:,:,i] = gamma_correct_channel(im[:,:,:,i], gamma_dict[i], lower_dict[i], upper_dict[i])
+            im_corrected[:,:,:,i] = gamma_correct_channel(im[:,:,:,i], gamma_dict[i], lower_dict[i], upper_dict[i], percentile)
     else:
         for i in range(im.shape[-1]):
-            im_corrected[:,:,i] = gamma_correct_channel(im[:,:,i], gamma_dict[i], lower_dict[i], upper_dict[i])
+            im_corrected[:,:,i] = gamma_correct_channel(im[:,:,i], gamma_dict[i], lower_dict[i], upper_dict[i], percentile)
     return im_corrected
 
 def int_to_float(out):

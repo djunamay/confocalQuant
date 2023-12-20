@@ -9,7 +9,7 @@ def save_mean_proj(mat_sele, mask_sele, outdir):
     mat_proj = np.mean(mat_sele, axis=(0))
     gamma_dict={0: 1, 1: 1, 2: 1, 3:1}
     lower_dict={0: 0, 1: 0, 2: 0, 3:0}
-    upper_dict={0: 100, 1: 99.9, 2: 100, 3:100}
+    upper_dict={0: 100, 1: 99.5, 2: 100, 3:100}
 
     mat_g = gamma_correct_image(mat_proj, gamma_dict, lower_dict, upper_dict, is_4D=False)
     show = extract_channels([1], mat_g, is_4D=False)
