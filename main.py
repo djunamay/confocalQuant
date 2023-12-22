@@ -42,8 +42,9 @@ def process_image(folder, im_path, ID, model, channels, y_channel, kernel, per_c
 
     all_mat = np.lib.format.open_memmap(mmap_1, shape=(NZi, xi_per_job, yi_per_job, len(channels)), dtype=float, mode=mode)
     all_masks = np.lib.format.open_memmap(path.join(folder, 'masks.npy'), shape=(NZi, xi_per_job, yi_per_job), dtype='uint16', mode=mode)
-    all_Y = np.lib.format.open_memmap(path.join(folder, 'Y.npy'), shape=(Ncells, len(channels)+len(y_channel)+3), dtype=float, mode=mode)
-    Ncells_per_job = np.lib.format.open_memmap(path.join(folder, 'Ncells_per_job.npy'), shape=(Njobs,1), dtype=int, mode=mode)
+    all_probs = np.lib.format.open_memmap(path.join(folder, 'probs.npy'), shape=(NZi, xi_per_job, yi_per_job), dtype=float, mode=mode)
+    #all_Y = np.lib.format.open_memmap(path.join(folder, 'Y.npy'), shape=(Ncells, len(channels)+len(y_channel)+3), dtype=float, mode=mode)
+    #Ncells_per_job = np.lib.format.open_memmap(path.join(folder, 'Ncells_per_job.npy'), shape=(Njobs,1), dtype=int, mode=mode)
     Nzi_per_job = np.lib.format.open_memmap(path.join(folder, 'Nzi_per_job.npy'), shape=(Njobs,1), dtype=int, mode=mode)
     randomID_per_job = np.lib.format.open_memmap(path.join(folder, 'randomID_per_job.npy'), shape=(Njobs,1), dtype=int, mode=mode)
 
@@ -86,22 +87,22 @@ def process_image(folder, im_path, ID, model, channels, y_channel, kernel, per_c
         print('doing inference')
         anisotropy = get_anisotropy(img)
         print('Anisotropy: ' + str(anisotropy))
-        masks, flows = do_inference(out_float, do_3D=True, model=model, anisotropy=anisotropy, diameter=diameter, channels=inf_channels, channel_axis=3, z_axis=0, min_size=min_size, normalize = False)
+        masks, flows = do_inference(out_float, do_3D=True, model=model, anisotropy=anisotropy, diameter=diameter, channels=inf_channels, channel_axis=3, z_axis=0, min_size=min_size, normalize = True)
 
-    # get expectations
-    print('computing expectations')
-    probs = sigmoid(flows[2])
-    volume_per_voxel = np.prod(img.physical_pixel_sizes)
-    Y = get_all_expectations(out_float, probs, masks, volume_per_voxel)
+#     # get expectations
+#     print('computing expectations')
+#     probs = sigmoid(flows[2])
+#     volume_per_voxel = np.prod(img.physical_pixel_sizes)
+#     Y = get_all_expectations(out_float, probs, masks, volume_per_voxel)
   
-    # remove background mean for channel of interest
-    print('processing Y')
-    for i in range(len(y_channel)):
-        channel_zero_bgrnd_mean = np.mean(out_float[:,:,:,y_channel[i]][masks==0])
-        Y = np.concatenate((Y, (Y[:,y_channel[i]]-channel_zero_bgrnd_mean).reshape(-1,1)), axis=1)
+#     # remove background mean for channel of interest
+#     print('processing Y')
+#     for i in range(len(y_channel)):
+#         channel_zero_bgrnd_mean = np.mean(out_float[:,:,:,y_channel[i]][masks==0])
+#         Y = np.concatenate((Y, (Y[:,y_channel[i]]-channel_zero_bgrnd_mean).reshape(-1,1)), axis=1)
 
-    # add image ID
-    Y = np.concatenate((Y, np.repeat(ID, Y.shape[0]).reshape(-1,1)), axis=1)
+#     # add image ID
+#     Y = np.concatenate((Y, np.repeat(ID, Y.shape[0]).reshape(-1,1)), axis=1)
     
     # save projection 
     print('saving projection')
@@ -114,14 +115,15 @@ def process_image(folder, im_path, ID, model, channels, y_channel, kernel, per_c
     # save mat, masks, and Y_filtered
     print('saving..')
     actual_NZi = out_float.shape[0]
-    actual_Ncells = Y.shape[0]
+    #actual_Ncells = Y.shape[0]
     
     end_zi = start_zi + actual_NZi
     all_mat[start_zi:end_zi] = out_float
     all_masks[start_zi:end_zi] = masks
-    end_Y = start_Y + actual_Ncells
-    all_Y[start_Y:end_Y] = Y
-    Ncells_per_job[ID] = actual_Ncells
+    all_probs[start_zi:end_zi] = sigmoid(flows[2])
+    #end_Y = start_Y + actual_Ncells
+    #all_Y[start_Y:end_Y] = Y
+    #Ncells_per_job[ID] = actual_Ncells
     Nzi_per_job[ID] = actual_NZi
     randomID_per_job[ID] = randomID
     
