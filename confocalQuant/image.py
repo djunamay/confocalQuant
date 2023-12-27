@@ -22,7 +22,7 @@ def save_mean_proj(mat_sele, mask_sele, outdir):
     for i in range(show.shape[-1]):
         show_copy[:,:,i][index]=1
 
-    temp = np.zeros((1024,10,3))
+    temp = np.zeros((mat_proj.shape[0],10,3))
     test = np.concatenate((show, temp, show_copy), axis = (1))
     image = Image.fromarray(float_to_int(test))
     random_ID = np.random.randint(10**9, 10**10) 
