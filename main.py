@@ -32,7 +32,7 @@ def get_czi_files(directory): # this function is chatGPT3
     files = [file for file in os.listdir(directory) if file.endswith(".czi")]
     return sorted(files)
 
-def process_image(folder, im_path, ID, model, channels, y_channel, kernel, per_channel_subtraction_vals, diameter, inf_channels, min_size, Ncells, NZi, start_Y, start_zi, xi_per_job, yi_per_job, Njobs, gamma_dict, lower_thresh_dict, upper_thresh_dict, outdir, preprocess):
+def process_image(folder, im_path, ID, model, channels, y_channel, kernel, per_channel_subtraction_vals, diameter, inf_channels, min_size, Ncells, NZi, start_Y, start_zi, xi_per_job, yi_per_job, Njobs, gamma_dict, lower_thresh_dict, upper_thresh_dict, outdir, preprocess, normalize):
     mmap_1 = path.join(folder, 'mat.npy')
 
     if not path.exists(mmap_1):
@@ -87,7 +87,7 @@ def process_image(folder, im_path, ID, model, channels, y_channel, kernel, per_c
         print('doing inference')
         anisotropy = get_anisotropy(img)
         print('Anisotropy: ' + str(anisotropy))
-        masks, flows = do_inference(out_float, do_3D=True, model=model, anisotropy=anisotropy, diameter=diameter, channels=inf_channels, channel_axis=3, z_axis=0, min_size=min_size, normalize = True)
+        masks, flows = do_inference(out_float, do_3D=True, model=model, anisotropy=anisotropy, diameter=diameter, channels=inf_channels, channel_axis=3, z_axis=0, min_size=min_size, normalize = normalize)
 
 #     # get expectations
 #     print('computing expectations')
@@ -153,6 +153,7 @@ if __name__ == '__main__':
     parser.add_argument('--upper_thresh_dict', type=parse_dict, required=True)
     parser.add_argument('--outdir', type=str, required=True)
     parser.add_argument('--preprocess', action='store_true', help='Enable preprocessing', default=False)
+    parser.add_argument('--normalize', action='store_true', help='Enable preprocessing', default=True)
 
     args = parser.parse_args()
     cells_per_job = args.cells_per_job
@@ -171,7 +172,7 @@ if __name__ == '__main__':
     print(im_path)
     
     print('starting processing')
-    process_image(args.folder, im_path, ID, model, args.channels, args.y_channel, args.kernel, args.bgrnd_subtraction_vals, args.diameter, args.inf_channels, args.min_size, args.Ncells, args.NZi, start_Y, start_zi, args.xi_per_job, args.yi_per_job, args.Njobs, args.gamma_dict, args.lower_thresh_dict, args.upper_thresh_dict, args.outdir, args.preprocess)
+    process_image(args.folder, im_path, ID, model, args.channels, args.y_channel, args.kernel, args.bgrnd_subtraction_vals, args.diameter, args.inf_channels, args.min_size, args.Ncells, args.NZi, start_Y, start_zi, args.xi_per_job, args.yi_per_job, args.Njobs, args.gamma_dict, args.lower_thresh_dict, args.upper_thresh_dict, args.outdir, args.preprocess, args.normalize)
     
     
     
