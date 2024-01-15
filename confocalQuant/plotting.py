@@ -11,6 +11,17 @@ from .segmentation import bgrnd_subtract, gamma_correct_image, extract_channels
 import os 
 
 def extract_sbatch_parameters(file_path):
+    """
+    Extract parameters from a Slurm sbatch script file and return them as a dictionary.
+
+    Parameters:
+    - file_path (str): Path to the sbatch script file.
+
+    Returns:
+    - dict: A dictionary containing the extracted parameters, where keys
+            are parameter names and values are either single values or lists
+            of values if parameters are specified in list form.
+    """
     parameters = {}
 
     with open(file_path, 'r') as file:
@@ -36,6 +47,19 @@ def extract_sbatch_parameters(file_path):
     return parameters
 
 def plot_effect(data, condition, control, treatment, x_name):
+    """
+    Plot the effect of a treatment condition on the distribution of a variable.
+
+    Parameters:
+    - data (pd.DataFrame): DataFrame containing the relevant data.
+    - condition (str): Column name representing the treatment condition.
+    - control (str): Value corresponding to the control group in the 'condition' column.
+    - treatment (str): Value corresponding to the treatment group in the 'condition' column.
+    - x_name (str): Column name representing the variable to be plotted.
+
+    Returns:
+    - None: The function only generates and displays the plot.
+    """
     plt.figure(figsize=(10,10))
     index = (data[condition]==control) | (data[condition]==treatment)
 
@@ -45,14 +69,22 @@ def plot_effect(data, condition, control, treatment, x_name):
     # assigning a graph to each ax
     sns.boxplot(data=data[index], x=x_name, y=condition,orient="h", ax=ax_box, hue=condition, width=0.5)
     sns.kdeplot(data=data[index], x=x_name, ax=ax_hist, hue=condition)
-    #plt.axvline(x=np.median(data[name][data['condition']=='vehicle']), color='red', linestyle='--', label='Vertical Line')
-    #plt.axvline(x=np.median(data[name][data['condition']==condition]), color='red', linestyle='--', label='Vertical Line')
-
+   
     # Remove x axis name for the boxplot
     ax_box.set(xlabel='')
-    #plt.show()
     
 def plot_by_well(data, name, treatment):
+    """
+    Plot a boxplot comparing the mean values of a variable by well condition.
+
+    Parameters:
+    - data (pd.DataFrame): DataFrame containing the relevant data.
+    - name (str): Column name representing the variable to be plotted.
+    - treatment (str): Value corresponding to the treatment condition in the 'condition' column.
+
+    Returns:
+    - None: The function only generates and displays the boxplot with p-value annotation.
+    """
     data['MeanValue'] = data.groupby('wellname')[name].transform('mean')
 
     temp = data[['condition', 'MeanValue']].drop_duplicates()
@@ -73,8 +105,20 @@ def plot_by_well(data, name, treatment):
     plt.text(x_pos, y_pos, f'P-Value: {p_value:.3f}', ha='center', va='center', color='red')
 
 def plot_violin(data, name, colname, baseline, treatment):
+    """
+    Plot a violinplot comparing the distribution of a variable between two conditions.
+
+    Parameters:
+    - data (pd.DataFrame): DataFrame containing the relevant data.
+    - name (str): Column name representing the variable to be plotted.
+    - colname (str): Column name representing the categorical variable for comparison.
+    - baseline (str): Value corresponding to the baseline condition in the 'colname' column.
+    - treatment (str): Value corresponding to the treatment condition in the 'colname' column.
+
+    Returns:
+    - None: The function only generates and displays the violinplot with a p-value annotation.
+    """
     # Create a violinplot
-    #plt.figure(figsize=(8, 6))
     data2 = data[(data[colname]==baseline) | (data[colname]==treatment)]
     ax = sns.violinplot(x='condition', y=name, data=data2)
 
@@ -92,6 +136,22 @@ def plot_violin(data, name, colname, baseline, treatment):
     
 
 def return_results(path_to_sbatch_file, prefix):
+    """
+    Retrieve and return results from the output files specified in the Slurm sbatch script.
+
+    Parameters:
+    - path_to_sbatch_file (str): Path to the Slurm sbatch script file.
+    - prefix (str): Prefix to be added to the folder path for result files.
+
+    Returns:
+    - Tuple[np.ndarray, np.ndarray, np.ndarray, int, int, np.ndarray]: A tuple containing the following:
+        - all_mat (np.ndarray): 4D array representing the 'mat.npy' file data.
+        - all_masks (np.ndarray): 3D array representing the 'masks.npy' file data.
+        - Nzi_per_job (np.ndarray): 1D array representing the 'Nzi_per_job.npy' file data.
+        - cells_per_job (int): Number of cells per job.
+        - zi_per_job (int): Value of zi_per_job parameter.
+        - randID_per_job (np.ndarray): 1D array representing the 'randomID_per_job.npy' file data.
+    """
     # get data and params
     params = extract_sbatch_parameters(path_to_sbatch_file)
     folder = params['--folder'][0][1:-1]
@@ -107,8 +167,6 @@ def return_results(path_to_sbatch_file, prefix):
 
     all_mat = np.lib.format.open_memmap(path.join(prefix + folder, 'mat.npy'), shape=(NZi, xi_per_job, yi_per_job, len(channels)), dtype=float, mode=mode)
     all_masks = np.lib.format.open_memmap(path.join(prefix + folder, 'masks.npy'), shape=(NZi, xi_per_job, yi_per_job), dtype='uint16', mode=mode)
-    #all_Y = np.lib.format.open_memmap(path.join(prefix + folder, 'Y.npy'), shape=(Ncells, len(channels)+4), dtype=float, mode=mode)
-    #Ncells_per_job = np.lib.format.open_memmap(path.join(prefix + folder, 'Ncells_per_job.npy'), shape=(Njobs,1), dtype=int, mode=mode)
     Nzi_per_job = np.lib.format.open_memmap(path.join(prefix + folder, 'Nzi_per_job.npy'), shape=(Njobs,1), dtype=int, mode=mode)
     randID_per_job = np.lib.format.open_memmap(path.join(prefix + folder, 'randomID_per_job.npy'), shape=(Njobs,1), dtype=int, mode=mode)
     
@@ -116,6 +174,23 @@ def return_results(path_to_sbatch_file, prefix):
 
 
 def concatenate_Y(files, all_Y, cells_per_job, Ncells_per_job, nuclear_col_idx, soma_col_idx, nuclear_percentile, soma_percentile, colnames):
+    """
+    Concatenate and filter Y data from multiple files, returning a DataFrame.
+
+    Parameters:
+    - files (List[str]): List of file names corresponding to Y data.
+    - all_Y (np.ndarray): 2D array containing all Y data.
+    - cells_per_job (int): Number of cells per job.
+    - Ncells_per_job (np.ndarray): 2D array representing the number of cells per job.
+    - nuclear_col_idx (int): Index of the column representing nuclear data in Y.
+    - soma_col_idx (int): Index of the column representing soma data in Y.
+    - nuclear_percentile (float): Percentile threshold for filtering nuclear data.
+    - soma_percentile (float): Percentile threshold for filtering soma data.
+    - colnames (List[str]): List of column names for the resulting DataFrame.
+
+    Returns:
+    - pd.DataFrame: Concatenated and filtered Y data in DataFrame format.
+    """
     res = []
     for ID in range(len(files)):
         start = ID*cells_per_job
@@ -134,6 +209,16 @@ def concatenate_Y(files, all_Y, cells_per_job, Ncells_per_job, nuclear_col_idx, 
 
 
 def add_metadata(data, path_to_meta):
+    """
+    Add metadata columns to an existing DataFrame based on information from a metadata file.
+
+    Parameters:
+    - data (pd.DataFrame): DataFrame to which metadata columns will be added.
+    - path_to_meta (str): Path to the metadata file containing additional information.
+
+    Returns:
+    - None: The function modifies the input DataFrame in-place.
+    """
     df = pd.read_csv(path_to_meta)
     dictionary1 = dict(zip(df['filename'], df['treatment']))
     dictionary2 = dict(zip(df['filename'], df['line']))
@@ -144,15 +229,24 @@ def add_metadata(data, path_to_meta):
         
 
 def exclude_files(exclude, files):
+    """
+    Exclude specified files from a list of files and return the remaining indices.
+
+    Parameters:
+    - exclude (List[str]): List of filenames to be excluded.
+    - files (List[str]): List of all filenames.
+
+    Returns:
+    - np.ndarray: Array containing the indices of files not included in the exclusion list.
+    """
     exclude = set(np.argwhere([x.split('.')[0] in exclude for x in files]).reshape(-1))
     IDS = np.argwhere([x not in exclude for x in range(len(files))]).reshape(-1)
     return IDS
 
-def modify_keep_files(keep_files, ids_to_remove):
-    idx = np.argwhere([x in ids_to_remove for x in keep_files])
-    keep_files = keep_files.pop(idx)
-    return keep_files
-
+# def modify_keep_files(keep_files, ids_to_remove):
+#     idx = np.argwhere([x in ids_to_remove for x in keep_files])
+#     keep_files = keep_files.pop(idx)
+#     return keep_files
 
 def add_scale_bar(size, img, plt):
     end = np.round(size/img.physical_pixel_sizes[2])

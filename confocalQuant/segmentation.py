@@ -158,11 +158,11 @@ def get_anisotropy(img):
     temp = img.physical_pixel_sizes
     return temp.Z/temp.X
 
-def do_inference(mat, do_3D, model, progressbar=None, anisotropy=None, diameter=20, channels=[2,0], zi = 15, channel_axis = 3, z_axis = 0, min_size = 1000, normalize=False):
+def do_inference(mat, do_3D, model, progressbar=None, anisotropy=None, diameter=20, channels=[2,0], zi = 15, channel_axis = 3, z_axis = 0, min_size = 1000, normalize=False, flow_threshold=0.4):
     if do_3D is False:
         masks, flows, styles, _ = model.eval(mat[zi], diameter=diameter, channels=channels, do_3D=do_3D, progress=progressbar, normalize = normalize)
     elif do_3D:
-        masks, flows, styles, _ = model.eval(mat, diameter=diameter, channels=channels, anisotropy=anisotropy, channel_axis=channel_axis, z_axis=z_axis, do_3D=do_3D, min_size=min_size, progress=progressbar, normalize = normalize)        
+        masks, flows, styles, _ = model.eval(mat, diameter=diameter, channels=channels, anisotropy=anisotropy, channel_axis=channel_axis, z_axis=z_axis, do_3D=do_3D, min_size=min_size, progress=progressbar, normalize = normalize, flow_threshold = flow_threshold)        
     return masks, flows
 
 def reduce_to_3D(out_float, is_4D=True):
