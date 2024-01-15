@@ -1,13 +1,71 @@
-import czifile
-import xml.etree.ElementTree as ET
 import numpy as np
-from aicsimageio import AICSImage
 import pandas as pd
-from tqdm import tqdm
 import matplotlib.pyplot as plt
+from tqdm import tqdm
+import xml.etree.ElementTree as ET
+from aicsimageio import AICSImage
 from skimage.segmentation import find_boundaries
+import czifile
+
+def return_channel_moments_per_im(files, path_to_parent, nchannels, max_val):
+    """
+    Calculate mean, standard deviation, and percentage of values per channel in each image.
+
+    Parameters:
+    - files (list): List of CZI file names.
+    - path_to_parent (str): Path to the parent directory.
+    - nchannels (int): Number of channels in the images.
+    - max_val (int): Maximum pixel value indicating clipping.
+
+    Returns:
+    - tuple: Three arrays containing mean, standard deviation, and percentage of clipped values per channel.
+    """
+    
+    out_means = np.empty((len(files), nchannels))
+    out_stds = np.empty((len(files), nchannels))
+    out_percent_clipped = np.empty((len(files), nchannels))
+    
+    for x in tqdm(range(len(files))):
+        czi_file_path = path_to_parent+files[x]
+        img = AICSImage(czi_file_path)
+        temp1 = []
+        temp2 = []
+        for i in range(nchannels):
+            d = img.data[:,i,:,:,:]
+            out_means[x][i] = np.mean(d)
+            out_stds[x][i] = np.std(d)
+            out_percent_clipped[x][i] = (np.sum(d==max_val)/np.prod(d.shape))*100
+        
+    return out_means, out_stds, out_percent_clipped
+
+def get_day_and_time(df):
+    """
+    Extract day and time information from the 'AcquisitionDateAndTime' column in a DataFrame.
+
+    Parameters:
+    - df (pd.DataFrame): DataFrame containing 'AcquisitionDateAndTime' column.
+
+    Returns:
+    - tuple: Two arrays containing day and time information.
+    """
+    time = []
+    for i in df['AcquisitionDateAndTime']:
+        x = i[0].split('T')[1].split('.')[0].split(':')
+        time.append(int("".join([str(item) for item in x])))
+    day = [int(x[0].split('-')[2].split('T')[0]) for x in df['AcquisitionDateAndTime']]
+    return np.array(day), np.array(time)
+
 
 def get_metadata(czi_file_path):
+    """
+    Extract metadata information from a CZI file.
+
+    Parameters:
+    - czi_file_path (str): Path to the CZI file.
+
+    Returns:
+    - dict: Dictionary containing various metadata parameters.
+    """
     # Open the CZI file
     with czifile.CziFile(czi_file_path) as czi:
         # Read the metadata from the CZI file
@@ -67,6 +125,8 @@ def get_metadata(czi_file_path):
               'pixelsize': img.physical_pixel_sizes})
         
         return dictionary2
+
+#####
     
 def return_non_unique_indices(df):
     res = []
@@ -92,33 +152,7 @@ def print_metadata(path_to_czi):
             root = ET.fromstring(metadata)
     print(metadata)
     
-def return_channel_moments_per_im(files, path_to_parent, nchannels, max_val):
-    
-    out_means = np.empty((len(files), nchannels))
-    out_stds = np.empty((len(files), nchannels))
-    out_percent_clipped = np.empty((len(files), nchannels))
-    
-    for x in tqdm(range(len(files))):
-        czi_file_path = path_to_parent+files[x]
-        img = AICSImage(czi_file_path)
-        temp1 = []
-        temp2 = []
-        for i in range(nchannels):
-            d = img.data[:,i,:,:,:]
-            out_means[x][i] = np.mean(d)
-            out_stds[x][i] = np.std(d)
-            out_percent_clipped[x][i] = (np.sum(d==max_val)/np.prod(d.shape))*100
-        
-    return out_means, out_stds, out_percent_clipped
 
-
-def get_day_and_time(df):
-    time = []
-    for i in df['AcquisitionDateAndTime']:
-        x = i[0].split('T')[1].split('.')[0].split(':')
-        time.append(int("".join([str(item) for item in x])))
-    day = [int(x[0].split('-')[2].split('T')[0]) for x in df['AcquisitionDateAndTime']]
-    return np.array(day), np.array(time)
 
 
 def plot_by(condition, x, y, xlab, ylab):
