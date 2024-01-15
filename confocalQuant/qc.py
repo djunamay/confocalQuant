@@ -1,11 +1,9 @@
+from tqdm import tqdm
+from aicsimageio import AICSImage
+import czifile
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-from tqdm import tqdm
 import xml.etree.ElementTree as ET
-from aicsimageio import AICSImage
-from skimage.segmentation import find_boundaries
-import czifile
 
 def return_channel_moments_per_im(files, path_to_parent, nchannels, max_val):
     """
@@ -127,30 +125,6 @@ def get_metadata(czi_file_path):
         return dictionary2
 
 #####
-    
-def return_non_unique_indices(df):
-    res = []
-    names = []
-    for col in df.columns:
-        try:
-            r = df[col].unique()
-        except TypeError:
-            r = np.unique([str(x) for x in df[col]])
-        res.append(r)
-        names.append(col)
-    temp = pd.DataFrame(res)
-    temp.index = names
-    non_unique_indices = temp.index[np.argwhere(np.array([np.sum([x!=None for x in temp.iloc[y]]) for y in range(temp.shape[0])])>1).reshape(-1)]
-    print('\n'.join(non_unique_indices))
-    return temp
-
-def print_metadata(path_to_czi):
-    with czifile.CziFile(path_to_czi) as czi:
-            # Read the metadata from the CZI file
-            metadata = czi.metadata()
-            img = AICSImage(path_to_czi)
-            root = ET.fromstring(metadata)
-    print(metadata)
     
 
 

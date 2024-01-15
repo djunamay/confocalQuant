@@ -1,24 +1,12 @@
 import os
-from functools import partial
-from distutils.util import strtobool
-import argparse
-import ast
-
 import numpy as np
-import torch as ch
 from tqdm import tqdm
 from skimage.segmentation import find_boundaries
-from scipy import signal
+from skimage.filters.rank import median as med_filter
 import numba as nb
 from aicsimageio import AICSImage
-from IPython.display import clear_output
-from PIL import Image
-import ipywidgets as widgets
-import matplotlib.pyplot as plt
-
-from cellpose import models
-
-from .widgets import buttons, upper_range, int_range_v, lower_range, dropdown_soma, dropdown_nuc, buttons2, text, int_range_seg
+import pandas as pd
+from skimage.exposure import equalize_hist
 
 def load_3D(img, N_channels):
     """
@@ -401,453 +389,353 @@ def hide_masks(data, ID, data_filtered, mask_sele):
         mask_copy[mask_copy==i]=0
     return mask_copy
 
-#################
-    
-def load_2D(img, z_slice, N_channels):
-    res = []
-    for i in N_channels:
-        res.append(img.get_image_data("ZXY", C=i)[z_slice])
-    out = np.stack(res, axis=2)    
-    return out
+def import_im(path, channels):
+    """
+    Import image data from a specified path and extract specific channels.
 
-def update_bounds(bounds, buttons, new_value, higher=True):
-    if higher:
-        for i in buttons.value:
-            bounds[i] = (bounds[i][0], new_value)
-    else:
-        for i in buttons.value:
-            bounds[i] = (new_value, bounds[i][1])
+    Parameters:
+    - path (str): Path to the image file.
+    - channels (list): List of channel indices to extract.
 
-def update_image(img, lower_percentile, upper_percentile, channel, zi, N_channels, bounds):
-    
-    out = load_2D(img, zi, N_channels)
+    Returns:
+    - np.ndarray: 4D array representing the extracted image data.
 
-    channel = set(channel)
-    all_channels = range(len(N_channels))
-    temp = [x for x in all_channels if x not in channel]
-    
-    mat = out.copy().astype('uint8')
-    for i in bounds:
-        mat[:,:,i] = threshold_im(out, bounds[i][0], bounds[i][1])[:,:,i]
-    
-    for i in temp:
-        mat[:,:,i] = 0
-        
-    im = Image.fromarray(mat)
-
-    return im
-
-def on_value_change_slider_upper(img, output2, lower_range, buttons, int_range_v, N_channels, bounds, buttons2,text, change):
-    update_bounds(bounds, buttons2, change['new'], higher=True)
-    text.value = '<br>'.join(['Channel ' + str(i) + ' lower bound = ' + str(bounds[i][0]) + '; higher bound = ' + str(bounds[i][1])for i in range(len(bounds))])
-    
-    with output2:  
-        clear_output(wait=True)
-        display(update_image(img, lower_range.value, change['new'], buttons.value, int_range_v.value, N_channels, bounds))
-        
-def on_value_change_slider_lower(img, output2, upper_range, buttons, int_range_v, N_channels, bounds, buttons2, text, change):
-    update_bounds(bounds, buttons2, change['new'], higher=False)
-    text.value = '<br>'.join(['Channel ' + str(i) + ' lower bound = ' + str(bounds[i][0]) + '; higher bound = ' + str(bounds[i][1])for i in range(len(bounds))])
-    
-    with output2:  
-        clear_output(wait=True)
-        display(update_image(img, change['new'], upper_range.value, buttons.value, int_range_v.value, N_channels, bounds))
-
-def on_value_change_button(img, output2, lower_range, upper_range, int_range_v, N_channels, bounds, change):
-    with output2:  
-        clear_output(wait=True)
-        display(update_image(img, lower_range.value, upper_range.value, change['new'], int_range_v.value, N_channels, bounds))
-
-
-def on_value_change_slider_vertical(img, output2, lower_range, upper_range, buttons, N_channels, bounds, change):
-    with output2:  
-        clear_output(wait=True)
-        display(update_image(img, lower_range.value, upper_range.value, buttons.value, change['new'], N_channels, bounds))
-
-        
-def show_im(path, z_slice=10, N_channels=range(3)):
+    This function uses AICSImage to load the image from the specified path,
+    extracts the specified channels, and returns the data as a 4D NumPy array.
+    """
     img = AICSImage(path)
-    
-    opt = range(len(N_channels))
-    
-    bounds = dict(zip(opt, [(1,99),(1,99),(1,99)]))
-    
-    buttons.options = opt
-    buttons2.options = opt
-
-    # dropdown_soma.options = opt
-    # dropdown_nuc.options = opt
-
-    int_range_v.max = img.dims['Z'][0]
-    
-    output2 = widgets.Output()
-
-    e = partial(on_value_change_slider_vertical, img, output2, lower_range, upper_range, buttons, N_channels, bounds)
-    f = partial(on_value_change_slider_upper, img, output2, lower_range, buttons, int_range_v, N_channels, bounds, buttons2, text)
-    g = partial(on_value_change_button, img, output2, lower_range, upper_range, int_range_v, N_channels, bounds)
-    h = partial(on_value_change_slider_lower, img, output2, upper_range, buttons, int_range_v, N_channels, bounds, buttons2, text)
-
-    upper_range.observe(f, names='value')
-    lower_range.observe(h, names='value')
-    buttons.observe(g, names='value')
-    int_range_v.observe(e, names='value')
-    return widgets.VBox([buttons, buttons2, upper_range, lower_range, int_range_v, text, output2]), bounds
-
-
-
-def extract_sbatch_parameters(file_path):
-    parameters = {}
-
-    with open(file_path, 'r') as file:
-        for line in file:
-            line = line.strip()
-
-            # Ignore comments
-            if line.startswith("#"):
-                continue
-
-            # Extract key-value pairs or parameters in list form
-            parts = line.split()
-            if len(parts) >= 2:
-                key, *values = parts
-                if '\\' in values:
-                    # Handle parameters in the form of "--key value1 value2 \"
-                    values = values[:values.index('\\')]
-                parameters[key] = values
-            elif len(parts) == 1:
-                # Handle parameters in list form
-                parameters.setdefault('list_parameters', []).extend(parts)
-
-    return parameters
-
-
-def apply_thresh_all_Z(out, bounds):
-    mat = out.copy().astype('uint8')
-    for i in bounds:
-        for j in tqdm(range(mat.shape[0])):
-            mat[j,:,:,i] = threshold_im(out[j], bounds[i][0], bounds[i][1])[:,:,i]
-    return mat
-
-
-def threshold_im(array, lower_percentile, upper_percentile):
-    if upper_percentile is None:
-        upper = np.max(array, axis=(0,1))
-    else:
-        upper = np.percentile(array, upper_percentile, axis=(0,1))
-    if lower_percentile is None:
-        lower = 0
-    else:
-        lower = np.percentile(array, lower_percentile, axis=(0,1))
-    return ((np.clip(array.astype(np.float64)-lower, 0, upper)/upper)*255).astype('uint8')
-
-def load_3D(img, N_channels):
-    res = []
-    for i in N_channels:
-        res.append(img.get_image_data("ZXY", C=i))
-    out = np.stack(res, axis=3)    
-    return out
-
-def show_segmentation(loaded_mat2, M, i):
-    
-    masked = np.where(M[i])
-
-    T = loaded_mat2[i]
-    T[:,:,0][masked] = 255
-    T[:,:,1][masked] = 255
-    T[:,:,2][masked] = 255
-    
-    im = Image.fromarray(T)
-    
-    return im
-
-
-def on_slide(output2, loaded_mat2, loaded_M, change):
-    with output2:  
-        clear_output(wait=True)
-        display(show_segmentation(loaded_mat2, loaded_M, change['new']))
-    
-def toggle_segmentation(mat2, masks):    
-    output2 = widgets.Output()
-    int_range_seg.max = mat2.shape[0]-1
-    o = [find_boundaries(masks[i], mode = 'outer', background = 0) for i in range(masks.shape[0])]
-    M = np.stack(o, axis=0)
-
-    e = partial(on_slide, output2, mat2, M)
-    int_range_seg.observe(e, names='value')
-    
-    return widgets.VBox([int_range_seg, output2])
-
-def show_maxproj_with_outlines(mat2, masks):
-    max_proj = np.mean(mat2, axis=(0))
-
-    for i in tqdm(range(masks.shape[0])):
-        M = find_boundaries(masks[i], mode = 'outer', background = 0)
-        max_proj[:,:,0][np.where(M)] = 255
-        max_proj[:,:,1][np.where(M)] = 255
-        max_proj[:,:,2][np.where(M)] = 255
-
-
-    return max_proj
-    
-    
-# def hide_masks(Y, masks_copy, dictionary):
-#     hide_masks = np.where((Y[:,0]<dictionary[0]) | (Y[:,1]<dictionary[1]) | (Y[:,2]<dictionary[2]))[0]+1
-#     for i in hide_masks:
-#         masks_copy[np.where(masks_copy==i)]=False
-        
-    
-
-
-        
-
-def show_meanproj_with_outlines(mat2, masks):
-    max_proj = np.mean(mat2, axis=(0))
-
-    for i in tqdm(range(masks.shape[0])):
-        M = find_boundaries(masks[i], mode = 'outer', background = 0)
-        max_proj[:,:,0][np.where(M)] = 255
-        max_proj[:,:,1][np.where(M)] = 255
-        max_proj[:,:,2][np.where(M)] = 255
-
-
-    return max_proj
-
-
-
-
+    out = load_3D(img, channels)
+    out_float = int_to_float(out)
+    return out_float
 
 @nb.njit(parallel=True)
 def estimate_percentile(matrix, percentile, channel):
+    """
+    Estimate the percentile value for a specific channel in a 3D image matrix.
+
+    Parameters:
+    - matrix (np.ndarray): 3D image matrix.
+    - percentile (float): Percentile value to estimate.
+    - channel (int): Channel index for which the percentile is estimated.
+
+    Returns:
+    - float: Estimated percentile value for the specified channel.
+    """
     N = matrix.shape[0]
     x = 0
     for i in nb.prange(N):
         x+=np.percentile(matrix[i,:,:,channel], percentile)
     return x/N
 
-def display_image(out_float, kernel_size, show, gamma_dict, background_dict, lower_dict, upper_dict, Zi):
+# #################
     
-    # do background subtraction
-    out_float_subtract = bgrnd_subtract(out_float, np.array(list(background_dict.values())))
+# def load_2D(img, z_slice, N_channels):
+#     res = []
+#     for i in N_channels:
+#         res.append(img.get_image_data("ZXY", C=i)[z_slice])
+#     out = np.stack(res, axis=2)    
+#     return out
 
-    # perform gamma correction for visualization
-    out_med_gamma = gamma_correct_image(out_float_subtract, gamma_dict, lower_dict, upper_dict, is_4D = True)
-    
-    matrix = out_med_gamma[Zi]
-    
-    # run med filter to remove noise
-    out_med = run_med_filter(matrix, kernel = kernel_size, is_4D = False)
+# def update_bounds(bounds, buttons, new_value, higher=True):
+#     if higher:
+#         for i in buttons.value:
+#             bounds[i] = (bounds[i][0], new_value)
+#     else:
+#         for i in buttons.value:
+#             bounds[i] = (new_value, bounds[i][1])
 
-    # only show selected channels
-    out_med_gamma_bgrnd_sele = extract_channels(show,out_med, is_4D=False)   
+# def update_image(img, lower_percentile, upper_percentile, channel, zi, N_channels, bounds):
     
-    # return selected z channel
-    im = Image.fromarray(float_to_int(out_med_gamma_bgrnd_sele))
-    return im
+#     out = load_2D(img, zi, N_channels)
 
-def on_filter_change(widget_output, out_float, kernel_size, adjust, show, gamma_dict, background_dict, gamma_new_val, background_new_val, lower_dict, upper_dict, upper_new_val, lower_new_val, Zi,parent_path, all_files, im_slider, channels, change):
+#     channel = set(channel)
+#     all_channels = range(len(N_channels))
+#     temp = [x for x in all_channels if x not in channel]
     
-    with widget_output:  
-        clear_output(wait=True)
-
-        update_dict(gamma_dict, adjust.value, gamma_new_val.value)
-        update_dict(background_dict, adjust.value, background_new_val.value)
-        update_dict(lower_dict, adjust.value, lower_new_val.value)
-        update_dict(upper_dict, adjust.value, upper_new_val.value)
+#     mat = out.copy().astype('uint8')
+#     for i in bounds:
+#         mat[:,:,i] = threshold_im(out, bounds[i][0], bounds[i][1])[:,:,i]
     
-        temp = out_float[im_slider.value]
+#     for i in temp:
+#         mat[:,:,i] = 0
         
-        display(display_image(temp, kernel_size.value, show.value, gamma_dict, background_dict, lower_dict, upper_dict, Zi.value))
+#     im = Image.fromarray(mat)
 
-def create_init_dict(N_channels, val):
-    empty_dict = {}
-    for i in range(N_channels):
-        empty_dict[i] = val
-    return empty_dict
+#     return im
 
-def import_im(path, channels):
-    img = AICSImage(path)
-    out = load_3D(img, channels)
-    out_float = int_to_float(out)
-    return out_float
-
-def toggle_filters(all_files, parent_path, channels, out_float=None):
-
-    if out_float is None:
-        out_float = []
-        for i in tqdm(all_files):
-            out_float.append(import_im(parent_path+i, channels))
-
-    N_channels = out_float[0].shape[3]
-    channel_adjust = create_buttons(range(N_channels), [0], 'Adjust:')
-    channel_show = create_buttons(range(N_channels), [1], 'Show:')
+# def on_value_change_slider_upper(img, output2, lower_range, buttons, int_range_v, N_channels, bounds, buttons2,text, change):
+#     update_bounds(bounds, buttons2, change['new'], higher=True)
+#     text.value = '<br>'.join(['Channel ' + str(i) + ' lower bound = ' + str(bounds[i][0]) + '; higher bound = ' + str(bounds[i][1])for i in range(len(bounds))])
     
-    im_slider = create_slider_int(0, 0, len(all_files)-1, 1, 'File ID:')
-    zi_slider = create_slider_int(10, 0, out_float[0].shape[0]-1, 1, 'Zi:')
-    gamma_slider = create_slider_float(1, 0, 5, 0.01, 'gamma:')
-    median_slider = create_slider_int(1, 1, 51, 2, 'median:')
-    background_slider = create_slider_float(0, 0, 100, 0.01, 'background:')
-    lower_slider = create_slider_float(0, 0, 100, 0.01, 'lower:')
-    upper_slider = create_slider_float(100, 90, 100, 0.01, 'upper:')
-
-    widget_output = widgets.Output()
-    
-    gamma_dict = create_init_dict(N_channels, 1)
-    lower_dict = create_init_dict(N_channels, 0)
-    upper_dict = create_init_dict(N_channels, 100)
-    background_dict = create_init_dict(N_channels, 0)
-    
-    f = partial(on_filter_change, widget_output, out_float, median_slider, channel_adjust, channel_show, gamma_dict, background_dict, gamma_slider, background_slider, lower_dict, upper_dict, upper_slider, lower_slider,zi_slider,parent_path, all_files, im_slider, channels)
-    
-    channel_show.observe(f, names='value')
-    channel_adjust.observe(f, names='value')
-
-    zi_slider.observe(f, names='value')
-    gamma_slider.observe(f, names='value')
-    median_slider.observe(f, names='value')
-    background_slider.observe(f, names='value')
-    lower_slider.observe(f, names='value')
-    upper_slider.observe(f, names='value')
-
-    im_slider.observe(f, names='value')
-
-    return widgets.VBox([channel_show, channel_adjust, zi_slider, gamma_slider, median_slider, background_slider, lower_slider, upper_slider, im_slider, widget_output])
-
-def update_dict(dictionary, adjust, new_val):
-    for i in adjust:
-        dictionary[i] = new_val
-            
-def create_slider_float(value, min, max, step, description):
-    slider = widgets.FloatSlider(
-    value=value,
-    min=min,
-    max=max,
-    step=step,
-    description=description,
-    disabled=False,
-    continuous_update=False,
-    orientation='horizontal',
-    readout=True,
-    readout_format='.1f',
-)
-    return slider
-
-
-def create_slider_int(value, min, max, step, description):
-    slider = widgets.IntSlider(
-    value=value,
-    min=min,
-    max=max,
-    step=step,
-    description=description,
-    disabled=False,
-    continuous_update=False,
-    orientation='horizontal',
-    readout=True,
-    readout_format='.1f',
-)
-    return slider
-
-def create_buttons(options, value, description):
-    
-    buttons = widgets.SelectMultiple(
-    options=options,
-    value=value,
-    description=description,
-    disabled=False
-)
-    return buttons
-
-@nb.njit(parallel=True)
-def med_filter(matrix, kernel):
-    """
-    Apply a 2D median filter to the input matrix.
-
-    Parameters:
-    - matrix (numpy.ndarray): The input 2D matrix.
-    - kernel (int): The size of the square filter kernel. Should be an odd number.
-
-    Returns:
-    - numpy.ndarray: The filtered matrix of the same shape as the input.
-
-    Note:
-    The function uses the median value within a square window of size 'kernel'
-    centered at each element in the input matrix to calculate the filtered result.
-
-    Example:
-    >>> input_matrix = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
-    >>> filtered_matrix = med_filter(input_matrix, kernel=3)
-    """
-    out = matrix.copy()
-    k = (kernel-1)/2
-    Nrow, Ncol = matrix.shape
-    for i in nb.prange(Nrow):
-        for j in range(Ncol):
-            i_lower = i-k
-            i_upper = i+k+1
-            j_lower = j-k
-            j_upper = j+k+1
-
-            if i_upper > Nrow:
-                i_upper = Nrow
-            if i_lower < 0:
-                i_lower = 0
-            if j_upper > Ncol:
-                j_upper = Ncol
-            if j_lower < 0:
-                j_lower = 0 
-
-            out[i,j] = np.median(matrix[int(i_lower):int(i_upper)][:,int(j_lower):int(j_upper)])
-    return out
-
-
-
-def update_image(img, lower_percentile, upper_percentile, channel, zi, N_channels, bounds):
-    
-    out = load_2D(img, zi, N_channels)
-
-    channel = set(channel)
-    all_channels = range(len(N_channels))
-    temp = [x for x in all_channels if x not in channel]
-    
-    mat = out.copy().astype('uint8')
-    for i in bounds:
-        mat[:,:,i] = threshold_im(out, bounds[i][0], bounds[i][1])[:,:,i]
-    
-    for i in temp:
-        mat[:,:,i] = 0
+#     with output2:  
+#         clear_output(wait=True)
+#         display(update_image(img, lower_range.value, change['new'], buttons.value, int_range_v.value, N_channels, bounds))
         
-    im = Image.fromarray(mat)
+# def on_value_change_slider_lower(img, output2, upper_range, buttons, int_range_v, N_channels, bounds, buttons2, text, change):
+#     update_bounds(bounds, buttons2, change['new'], higher=False)
+#     text.value = '<br>'.join(['Channel ' + str(i) + ' lower bound = ' + str(bounds[i][0]) + '; higher bound = ' + str(bounds[i][1])for i in range(len(bounds))])
+    
+#     with output2:  
+#         clear_output(wait=True)
+#         display(update_image(img, change['new'], upper_range.value, buttons.value, int_range_v.value, N_channels, bounds))
 
-    return im
+# def on_value_change_button(img, output2, lower_range, upper_range, int_range_v, N_channels, bounds, change):
+#     with output2:  
+#         clear_output(wait=True)
+#         display(update_image(img, lower_range.value, upper_range.value, change['new'], int_range_v.value, N_channels, bounds))
+
+
+# def on_value_change_slider_vertical(img, output2, lower_range, upper_range, buttons, N_channels, bounds, change):
+#     with output2:  
+#         clear_output(wait=True)
+#         display(update_image(img, lower_range.value, upper_range.value, buttons.value, change['new'], N_channels, bounds))
+
+        
+# def show_im(path, z_slice=10, N_channels=range(3)):
+#     img = AICSImage(path)
+    
+#     opt = range(len(N_channels))
+    
+#     bounds = dict(zip(opt, [(1,99),(1,99),(1,99)]))
+    
+#     buttons.options = opt
+#     buttons2.options = opt
+
+#     # dropdown_soma.options = opt
+#     # dropdown_nuc.options = opt
+
+#     int_range_v.max = img.dims['Z'][0]
+    
+#     output2 = widgets.Output()
+
+#     e = partial(on_value_change_slider_vertical, img, output2, lower_range, upper_range, buttons, N_channels, bounds)
+#     f = partial(on_value_change_slider_upper, img, output2, lower_range, buttons, int_range_v, N_channels, bounds, buttons2, text)
+#     g = partial(on_value_change_button, img, output2, lower_range, upper_range, int_range_v, N_channels, bounds)
+#     h = partial(on_value_change_slider_lower, img, output2, upper_range, buttons, int_range_v, N_channels, bounds, buttons2, text)
+
+#     upper_range.observe(f, names='value')
+#     lower_range.observe(h, names='value')
+#     buttons.observe(g, names='value')
+#     int_range_v.observe(e, names='value')
+#     return widgets.VBox([buttons, buttons2, upper_range, lower_range, int_range_v, text, output2]), bounds
+
+
+
+# def extract_sbatch_parameters(file_path):
+#     parameters = {}
+
+#     with open(file_path, 'r') as file:
+#         for line in file:
+#             line = line.strip()
+
+#             # Ignore comments
+#             if line.startswith("#"):
+#                 continue
+
+#             # Extract key-value pairs or parameters in list form
+#             parts = line.split()
+#             if len(parts) >= 2:
+#                 key, *values = parts
+#                 if '\\' in values:
+#                     # Handle parameters in the form of "--key value1 value2 \"
+#                     values = values[:values.index('\\')]
+#                 parameters[key] = values
+#             elif len(parts) == 1:
+#                 # Handle parameters in list form
+#                 parameters.setdefault('list_parameters', []).extend(parts)
+
+#     return parameters
+
+
+# def apply_thresh_all_Z(out, bounds):
+#     mat = out.copy().astype('uint8')
+#     for i in bounds:
+#         for j in tqdm(range(mat.shape[0])):
+#             mat[j,:,:,i] = threshold_im(out[j], bounds[i][0], bounds[i][1])[:,:,i]
+#     return mat
+
+
+# def threshold_im(array, lower_percentile, upper_percentile):
+#     if upper_percentile is None:
+#         upper = np.max(array, axis=(0,1))
+#     else:
+#         upper = np.percentile(array, upper_percentile, axis=(0,1))
+#     if lower_percentile is None:
+#         lower = 0
+#     else:
+#         lower = np.percentile(array, lower_percentile, axis=(0,1))
+#     return ((np.clip(array.astype(np.float64)-lower, 0, upper)/upper)*255).astype('uint8')
+
+# def load_3D(img, N_channels):
+#     res = []
+#     for i in N_channels:
+#         res.append(img.get_image_data("ZXY", C=i))
+#     out = np.stack(res, axis=3)    
+#     return out
+
+# def show_segmentation(loaded_mat2, M, i):
+    
+#     masked = np.where(M[i])
+
+#     T = loaded_mat2[i]
+#     T[:,:,0][masked] = 255
+#     T[:,:,1][masked] = 255
+#     T[:,:,2][masked] = 255
+    
+#     im = Image.fromarray(T)
+    
+#     return im
+
+
+# def on_slide(output2, loaded_mat2, loaded_M, change):
+#     with output2:  
+#         clear_output(wait=True)
+#         display(show_segmentation(loaded_mat2, loaded_M, change['new']))
+    
+# def toggle_segmentation(mat2, masks):    
+#     output2 = widgets.Output()
+#     int_range_seg.max = mat2.shape[0]-1
+#     o = [find_boundaries(masks[i], mode = 'outer', background = 0) for i in range(masks.shape[0])]
+#     M = np.stack(o, axis=0)
+
+#     e = partial(on_slide, output2, mat2, M)
+#     int_range_seg.observe(e, names='value')
+    
+#     return widgets.VBox([int_range_seg, output2])
+
+# def show_maxproj_with_outlines(mat2, masks):
+#     max_proj = np.mean(mat2, axis=(0))
+
+#     for i in tqdm(range(masks.shape[0])):
+#         M = find_boundaries(masks[i], mode = 'outer', background = 0)
+#         max_proj[:,:,0][np.where(M)] = 255
+#         max_proj[:,:,1][np.where(M)] = 255
+#         max_proj[:,:,2][np.where(M)] = 255
+
+
+#     return max_proj
+    
+    
+# # def hide_masks(Y, masks_copy, dictionary):
+# #     hide_masks = np.where((Y[:,0]<dictionary[0]) | (Y[:,1]<dictionary[1]) | (Y[:,2]<dictionary[2]))[0]+1
+# #     for i in hide_masks:
+# #         masks_copy[np.where(masks_copy==i)]=False
+        
+    
+
+
+        
+
+# def show_meanproj_with_outlines(mat2, masks):
+#     max_proj = np.mean(mat2, axis=(0))
+
+#     for i in tqdm(range(masks.shape[0])):
+#         M = find_boundaries(masks[i], mode = 'outer', background = 0)
+#         max_proj[:,:,0][np.where(M)] = 255
+#         max_proj[:,:,1][np.where(M)] = 255
+#         max_proj[:,:,2][np.where(M)] = 255
+
+
+#     return max_proj
+
+
+
+
+
+
+
+
+# @nb.njit(parallel=True)
+# def med_filter(matrix, kernel):
+#     """
+#     Apply a 2D median filter to the input matrix.
+
+#     Parameters:
+#     - matrix (numpy.ndarray): The input 2D matrix.
+#     - kernel (int): The size of the square filter kernel. Should be an odd number.
+
+#     Returns:
+#     - numpy.ndarray: The filtered matrix of the same shape as the input.
+
+#     Note:
+#     The function uses the median value within a square window of size 'kernel'
+#     centered at each element in the input matrix to calculate the filtered result.
+
+#     Example:
+#     >>> input_matrix = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+#     >>> filtered_matrix = med_filter(input_matrix, kernel=3)
+#     """
+#     out = matrix.copy()
+#     k = (kernel-1)/2
+#     Nrow, Ncol = matrix.shape
+#     for i in nb.prange(Nrow):
+#         for j in range(Ncol):
+#             i_lower = i-k
+#             i_upper = i+k+1
+#             j_lower = j-k
+#             j_upper = j+k+1
+
+#             if i_upper > Nrow:
+#                 i_upper = Nrow
+#             if i_lower < 0:
+#                 i_lower = 0
+#             if j_upper > Ncol:
+#                 j_upper = Ncol
+#             if j_lower < 0:
+#                 j_lower = 0 
+
+#             out[i,j] = np.median(matrix[int(i_lower):int(i_upper)][:,int(j_lower):int(j_upper)])
+#     return out
+
+
+
+# def update_image(img, lower_percentile, upper_percentile, channel, zi, N_channels, bounds):
+    
+#     out = load_2D(img, zi, N_channels)
+
+#     channel = set(channel)
+#     all_channels = range(len(N_channels))
+#     temp = [x for x in all_channels if x not in channel]
+    
+#     mat = out.copy().astype('uint8')
+#     for i in bounds:
+#         mat[:,:,i] = threshold_im(out, bounds[i][0], bounds[i][1])[:,:,i]
+    
+#     for i in temp:
+#         mat[:,:,i] = 0
+        
+#     im = Image.fromarray(mat)
+
+#     return im
 
     
     
     
         
-def show_im(path, z_slice=10, N_channels=range(3)):
-    img = AICSImage(path)
+# def show_im(path, z_slice=10, N_channels=range(3)):
+#     img = AICSImage(path)
     
-    opt = range(len(N_channels))
+#     opt = range(len(N_channels))
     
-    bounds = dict(zip(opt, [(1,99),(1,99),(1,99)]))
+#     bounds = dict(zip(opt, [(1,99),(1,99),(1,99)]))
     
-    buttons.options = opt
-    buttons2.options = opt
+#     buttons.options = opt
+#     buttons2.options = opt
 
-    # dropdown_soma.options = opt
-    # dropdown_nuc.options = opt
+#     # dropdown_soma.options = opt
+#     # dropdown_nuc.options = opt
 
-    int_range_v.max = img.dims['Z'][0]
+#     int_range_v.max = img.dims['Z'][0]
     
-    output2 = widgets.Output()
+#     output2 = widgets.Output()
 
-    e = partial(on_value_change_slider_vertical, img, output2, lower_range, upper_range, buttons, N_channels, bounds)
-    f = partial(on_value_change_slider_upper, img, output2, lower_range, buttons, int_range_v, N_channels, bounds, buttons2, text)
-    g = partial(on_value_change_button, img, output2, lower_range, upper_range, int_range_v, N_channels, bounds)
-    h = partial(on_value_change_slider_lower, img, output2, upper_range, buttons, int_range_v, N_channels, bounds, buttons2, text)
+#     e = partial(on_value_change_slider_vertical, img, output2, lower_range, upper_range, buttons, N_channels, bounds)
+#     f = partial(on_value_change_slider_upper, img, output2, lower_range, buttons, int_range_v, N_channels, bounds, buttons2, text)
+#     g = partial(on_value_change_button, img, output2, lower_range, upper_range, int_range_v, N_channels, bounds)
+#     h = partial(on_value_change_slider_lower, img, output2, upper_range, buttons, int_range_v, N_channels, bounds, buttons2, text)
 
-    upper_range.observe(f, names='value')
-    lower_range.observe(h, names='value')
-    buttons.observe(g, names='value')
-    int_range_v.observe(e, names='value')
-    return widgets.VBox([buttons, buttons2, upper_range, lower_range, int_range_v, text, output2]), bounds
+#     upper_range.observe(f, names='value')
+#     lower_range.observe(h, names='value')
+#     buttons.observe(g, names='value')
+#     int_range_v.observe(e, names='value')
+#     return widgets.VBox([buttons, buttons2, upper_range, lower_range, int_range_v, text, output2]), bounds

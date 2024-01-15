@@ -1,7 +1,8 @@
-import numba as nb
-
+import numpy as np
+import pandas as pd
 import statsmodels.api as sm
-from statsmodels.formula.api import mixedlm
+from statsmodels.regression.mixed_linear_model import MixedLM
+from numba import njit, prange
 
 def compute_nested_anova(resE, score, group, nested_col):
     """

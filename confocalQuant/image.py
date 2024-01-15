@@ -2,8 +2,8 @@ import numpy as np
 from PIL import Image
 from skimage.segmentation import find_boundaries
 from matplotlib.patches import Rectangle
-from .segmentation import hide_masks, gamma_correct_image, extract_channels, float_to_int
-from .plotting import get_id_data
+
+from .segmentation import bgrnd_subtract, gamma_correct_image, extract_channels, float_to_int
 
 def save_mean_proj(mat_sele, mask_sele, outdir):
     """
