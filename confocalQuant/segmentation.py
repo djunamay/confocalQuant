@@ -1,40 +1,408 @@
-from aicsimageio import AICSImage
-import numpy as np
+import os
 from functools import partial
+from distutils.util import strtobool
+import argparse
+import ast
+
+import numpy as np
+import torch as ch
+from tqdm import tqdm
+from skimage.segmentation import find_boundaries
+from scipy import signal
+import numba as nb
+from aicsimageio import AICSImage
 from IPython.display import clear_output
 from PIL import Image
 import ipywidgets as widgets
-from tqdm import tqdm
 import matplotlib.pyplot as plt
-from scipy import signal
-import numba as nb
-import os
-from skimage.segmentation import find_boundaries
-
-
-import numpy as np
-from aicsimageio import AICSImage
-import torch as ch
-from tqdm import tqdm
-from os import path
-
-import argparse
-from distutils.util import strtobool
-import os
-
-import ast
 
 from cellpose import models
 
 from .widgets import buttons, upper_range, int_range_v, lower_range, dropdown_soma, dropdown_nuc, buttons2, text, int_range_seg
 
 def load_3D(img, N_channels):
+    """
+    Load 3D image data from an AICSImage object for specified channels.
+
+    Parameters:
+    - img (AICSImage): An AICSImage object containing the image data.
+    - N_channels (list): List of channel indices to load.
+
+    Returns:
+    - np.ndarray: 4D array representing the loaded 3D image data with specified channels.
+    """
     res = []
     for i in N_channels:
         res.append(img.get_image_data("ZXY", C=i))
     out = np.stack(res, axis=3)    
     return out
 
+def int_to_float(out):
+    """
+    Convert image data from integer to float format.
+
+    Parameters:
+    - out (np.ndarray): Input image data in integer format.
+
+    Returns:
+    - np.ndarray: Converted image data in float format.
+    
+    Note:
+    If the input data type is 'uint16', the conversion is normalized to the range [0, 1]
+    by dividing by ((2**16) - 1). If the input data type is 'uint8', the normalization
+    is performed by dividing by ((2**8) - 1), resulting in the range [0, 1].
+    """
+    if out.dtype=='uint16':
+        return out.astype(float)/((2**16)-1)
+    elif out.dtype=='uint8':
+        return out.astype(float)/((2**8)-1)
+    
+
+def run_med_filter(out_float, kernel=3, is_4D = True):
+    """
+    Apply a median filter to 4D or 3D image data.
+
+    Parameters:
+    - out_float (np.ndarray): Input image data in float format.
+    - kernel (int): Size of the median filter kernel. Default is 3.
+    - is_4D (bool): Indicates whether the input data is 4D. Default is True.
+
+    Returns:
+    - np.ndarray: Image data after applying the median filter.
+    """
+    out_med = out_float.copy()
+
+    if is_4D:
+        for i in tqdm(range(out_med.shape[0])):
+            for j in range(out_med.shape[-1]):
+                out_med[i,:,:,j] = med_filter(matrix=out_float[i,:,:,j], kernel=kernel)
+    else:
+        for j in range(out_med.shape[-1]):
+            out_med[:,:,j] = med_filter(matrix=out_float[:,:,j], kernel=kernel)
+        
+    return out_med
+
+@nb.njit(parallel=True)
+def bgrnd_subtract(matrix, percentile):
+    """
+    Perform background subtraction on each channel of a 3D image matrix.
+
+    Parameters:
+    - matrix (np.ndarray): 3D image matrix.
+    - percentile (np.ndarray): Array of percentiles for background estimation.
+
+    Returns:
+    - np.ndarray: Image matrix after background subtraction and clipping to the range [0, 1].
+    """
+    res = []
+    for i in range(matrix.shape[-1]):
+        if percentile[i]==0:
+            res.append(0)
+        else:
+            res.append(estimate_percentile(matrix, percentile[i], i))
+
+    out = matrix-np.array(res)
+    
+    return  np.clip(out, 0, 1)
+
+
+def get_anisotropy(img):
+    """
+    Calculate the anisotropy of an image based on the physical pixel sizes.
+
+    Parameters:
+    - img (AICSImage): An AICSImage object containing the image data.
+
+    Returns:
+    - float: Anisotropy value calculated as the ratio of the Z-axis pixel size to the X-axis pixel size.
+    """
+    temp = img.physical_pixel_sizes
+    return temp.Z/temp.X
+
+
+
+def do_inference(mat, do_3D, model, progressbar=None, anisotropy=None, diameter=20, channels=[2,0], zi = 15, channel_axis = 3, z_axis = 0, min_size = 1000, normalize=False, flow_threshold=0.4):
+    """
+    Perform inference using a cellpose model on 2D or 3D image data.
+
+    Parameters:
+    - mat (np.ndarray): Input image data.
+    - do_3D (bool): Indicates whether to perform 3D inference.
+    - model: Cellpose model for inference.
+    - progressbar: Optional progress bar for tracking inference progress.
+    - anisotropy: Anisotropy value for 3D inference.
+    - diameter (int): Estimated diameter of objects in the image. Default is 20.
+    - channels (list): List of channel indices to use in inference. Default is [2, 0].
+    - zi (int): Z-index to use in inference for 3D data. Default is 15.
+    - channel_axis (int): Axis containing the channel information in the input data. Default is 3.
+    - z_axis (int): Axis containing the Z information in the input data. Default is 0.
+    - min_size (int): Minimum size of objects to consider in segmentation. Default is 1000.
+    - normalize (bool): Indicates whether to normalize the input data before inference. Default is False.
+    - flow_threshold (float): Threshold for flow-based quality control. Default is 0.4.
+
+    Returns:
+    - tuple: Tuple containing masks and flows generated by the cellpose model during inference.
+    """
+    if do_3D is False:
+        masks, flows, styles, _ = model.eval(mat[zi], diameter=diameter, channels=channels, do_3D=do_3D, progress=progressbar, normalize = normalize)
+    elif do_3D:
+        masks, flows, styles, _ = model.eval(mat, diameter=diameter, channels=channels, anisotropy=anisotropy, channel_axis=channel_axis, z_axis=z_axis, do_3D=do_3D, min_size=min_size, progress=progressbar, normalize = normalize, flow_threshold = flow_threshold)        
+    return masks, flows
+
+
+def sigmoid(x):
+    """
+    Compute the sigmoid function element-wise.
+
+    Parameters:
+    - x (np.ndarray): Input array.
+
+    Returns:
+    - np.ndarray: Array of the same shape as x with sigmoid-transformed values.
+    """
+    return 1 / (1 + np.exp(-x))
+
+
+def gamma_correct_channel(image_float, gamma, lower, upper, percentile):
+    """
+    Apply gamma correction to a floating-point image channel.
+
+    Parameters:
+    - image_float (np.ndarray): Input image channel in floating-point format.
+    - gamma (float): Gamma correction parameter.
+    - lower (float): Lower threshold for percentile-based adjustment (percentage if `percentile` is True, otherwise absolute threshold).
+    - upper (float): Upper threshold for percentile-based adjustment (percentage if `percentile` is True, otherwise absolute threshold).
+    - percentile (bool): Indicates whether to use percentile-based thresholds.
+
+    Returns:
+    - np.ndarray: Image channel after gamma correction.
+    """
+    
+    if percentile:
+        # threshold 
+        if lower==0:
+            lower=0
+        else:
+            lower = np.percentile(image_float, lower)
+
+        if upper==100:
+            upper=1
+        else:
+            upper = np.percentile(image_float, upper)
+    
+    # Clip the values to be in the valid range [0, 1]
+    image_float = np.clip((image_float-lower)/(upper-lower), a_min = 0, a_max = 1)
+    
+    # Apply gamma correction
+    image_corrected = np.power(image_float, gamma)
+    
+    return image_corrected
+
+def gamma_correct_image(im, gamma_dict, lower_dict, upper_dict, is_4D=True, percentile=True):
+    """
+    Apply gamma correction to each channel of a 3D or 4D image.
+
+    Parameters:
+    - im (np.ndarray): Input image data.
+    - gamma_dict (dict): Dictionary mapping channel indices to gamma correction parameters.
+    - lower_dict (dict): Dictionary mapping channel indices to lower thresholds for percentile-based adjustment.
+    - upper_dict (dict): Dictionary mapping channel indices to upper thresholds for percentile-based adjustment.
+    - is_4D (bool): Indicates whether the input data is 4D. Default is True.
+    - percentile (bool): Indicates whether to use percentile-based thresholds for gamma correction. Default is True.
+
+    Returns:
+    - np.ndarray: Image data after applying gamma correction to each channel.
+    """
+    im_corrected = im.copy()
+    
+    if is_4D:
+        for i in range(im.shape[-1]):
+            im_corrected[:,:,:,i] = gamma_correct_channel(im[:,:,:,i], gamma_dict[i], lower_dict[i], upper_dict[i], percentile)
+    else:
+        for i in range(im.shape[-1]):
+            im_corrected[:,:,i] = gamma_correct_channel(im[:,:,i], gamma_dict[i], lower_dict[i], upper_dict[i], percentile)
+    return im_corrected
+
+def get_czi_files(directory): # this function is chatGPT3
+    """
+    Get a sorted list of CZI files in the specified directory.
+
+    Parameters:
+    - directory (str): Path to the directory containing CZI files.
+
+    Returns:
+    - list: Sorted list of CZI files in the specified directory.
+    """
+    files = [file for file in os.listdir(directory) if file.endswith(".czi")]
+    return sorted(files)
+
+
+def reduce_to_3D(out_float, is_4D=True):
+    """
+    Reduce 4D or 3D image data to 3D by selecting channels with non-zero intensity.
+
+    Parameters:
+    - out_float (np.ndarray): Input image data in floating-point format.
+    - is_4D (bool): Indicates whether the input data is 4D. Default is True.
+
+    Returns:
+    - np.ndarray: Reduced image data in 3D by selecting channels with non-zero intensity.
+    """
+    if is_4D:
+        axis = (0,1,2)
+    else:
+        axis = (0,1)
+        
+    temp = np.max(out_float, axis=axis)
+    keep = list(np.where(temp>0)[0])
+    zeros = list(np.where(temp==0)[0])
+
+    for i in range(3-len(keep)):
+        keep.append(zeros[i])
+
+    if is_4D:
+        out_float = out_float[:,:,:,np.sort(keep)]
+    else:
+        out_float = out_float[:,:,np.sort(keep)]
+    return out_float
+
+def extract_channels(keep_channel, mat, is_4D=True):
+    """
+    Extract specified channels from 4D or 3D image data and reduce to 3D.
+
+    Parameters:
+    - keep_channel (list): List of channel indices to keep.
+    - mat (np.ndarray): Input image data.
+    - is_4D (bool): Indicates whether the input data is 4D. Default is True.
+
+    Returns:
+    - np.ndarray: Image data with only the specified channels, reduced to 3D.
+    """
+    mat2 = mat.copy()
+
+    if is_4D:
+        channels = range(mat.shape[3])
+        channels_discard = np.array(channels)[[x not in set(keep_channel) for x in channels]]
+    
+        for i in channels_discard:
+            mat2[:,:,:,i] = 0
+        mat2 = reduce_to_3D(mat2, is_4D=is_4D)
+    else:
+        channels = range(mat.shape[2])
+        channels_discard = np.array(channels)[[x not in set(keep_channel) for x in channels]]
+    
+        for i in channels_discard:
+            mat2[:,:,i] = 0
+        mat2 = reduce_to_3D(mat2, is_4D=is_4D)
+            
+    return mat2
+
+
+def impose_segmentation_all(ID, zi_per_job, Nzi, mat, masks, val, data, data_filtered, hide=True):
+    """
+    Generate superimposed data by imposing segmentation masks on selected image slices.
+
+    Parameters:
+    - ID (int): Job ID.
+    - zi_per_job (int): Number of Z slices per job.
+    - Nzi (np.ndarray): Array containing the number of Z slices for each job.
+    - mat (np.ndarray): Input image data.
+    - masks (np.ndarray): Segmentation masks.
+    - val (float): Value to set in the superimposed regions.
+    - data (np.ndarray): Original data used for masking.
+    - data_filtered (np.ndarray): Filtered data used for masking.
+    - hide (bool): Indicates whether to hide masks using additional criteria. Default is True.
+
+    Returns:
+    - np.ndarray: Superimposed data with segmentation masks imposed on selected image slices.
+    """
+    start = ID*zi_per_job
+    end = start + Nzi[ID][0]
+    mat_sele = mat[start:end]
+    mask_sele = masks[start:end]
+    
+    if hide:
+        mask_sele = hide_masks(data, ID, data_filtered, mask_sele)
+        
+    o = [find_boundaries(mask_sele[i], mode = 'outer', background = 0) for i in range(mask_sele.shape[0])]
+    M = np.stack(o, axis=0)
+
+
+    superimposed_data = mat_sele.copy()
+    for i in range(mat_sele.shape[0]):
+        masked = np.where(M[i])
+        
+        for c in range(mat_sele.shape[-1]):
+
+            superimposed_data[i,:,:,c][masked] = val
+        
+    return superimposed_data
+
+def impose_segmentation(mask_sele, mat_sele, val):
+    """
+    Generate superimposed data by imposing segmentation masks.
+
+    Parameters:
+    - mask_sele (np.ndarray): Segmentation masks.
+    - mat_sele (np.ndarray): Input image data.
+    - val (float): Value to set in the superimposed regions.
+
+    Returns:
+    - np.ndarray: Superimposed data with segmentation masks imposed.
+    """
+    o = [find_boundaries(mask_sele[i], mode = 'outer', background = 0) for i in range(mask_sele.shape[0])]
+    M = np.stack(o, axis=0)
+
+
+    superimposed_data = mat_sele.copy()
+    for i in range(mat_sele.shape[0]):
+        masked = np.where(M[i])
+        
+        for c in range(mat_sele.shape[-1]):
+
+            superimposed_data[i,:,:,c][masked] = val
+        
+    return superimposed_data
+
+
+def float_to_int(out, dtype='uint8'):
+    """
+    Convert floating-point image data to integer format.
+
+    Parameters:
+    - out (np.ndarray): Input image data in floating-point format.
+    - dtype (str): Desired data type for the output (e.g., 'uint8' or 'uint16'). Default is 'uint8'.
+
+    Returns:
+    - np.ndarray: Image data converted to the specified integer format.
+    """
+    if dtype=='uint16':
+        return (out*((2**16)-1)).astype('uint16')
+    elif dtype=='uint8':
+        return (out*((2**8)-1)).astype('uint8')
+
+def hide_masks(data, ID, data_filtered, mask_sele):
+    """
+    Hide masks based on filtering criteria.
+
+    Parameters:
+    - data (pd.DataFrame): DataFrame containing metadata and segmentation results.
+    - ID (int): Job ID.
+    - data_filtered (pd.DataFrame): DataFrame containing filtered metadata.
+    - mask_sele (np.ndarray): Segmentation masks.
+
+    Returns:
+    - np.ndarray: Mask data with specified masks hidden based on filtering criteria.
+    """
+    data_temp = data[data['ID']==ID]
+    hide_masks = np.where([x not in set(data_filtered.index) for x in data_temp.index])[0]
+    mask_copy = mask_sele.copy()
+    for i in hide_masks:
+        mask_copy[mask_copy==i]=0
+    return mask_copy
+
+#################
+    
 def load_2D(img, z_slice, N_channels):
     res = []
     for i in N_channels:
@@ -125,9 +493,7 @@ def show_im(path, z_slice=10, N_channels=range(3)):
     int_range_v.observe(e, names='value')
     return widgets.VBox([buttons, buttons2, upper_range, lower_range, int_range_v, text, output2]), bounds
 
-def get_czi_files(directory): # this function is chatGPT3
-    files = [file for file in os.listdir(directory) if file.endswith(".czi")]
-    return sorted(files)
+
 
 def extract_sbatch_parameters(file_path):
     parameters = {}
@@ -154,55 +520,6 @@ def extract_sbatch_parameters(file_path):
 
     return parameters
 
-def get_anisotropy(img):
-    temp = img.physical_pixel_sizes
-    return temp.Z/temp.X
-
-def do_inference(mat, do_3D, model, progressbar=None, anisotropy=None, diameter=20, channels=[2,0], zi = 15, channel_axis = 3, z_axis = 0, min_size = 1000, normalize=False, flow_threshold=0.4):
-    if do_3D is False:
-        masks, flows, styles, _ = model.eval(mat[zi], diameter=diameter, channels=channels, do_3D=do_3D, progress=progressbar, normalize = normalize)
-    elif do_3D:
-        masks, flows, styles, _ = model.eval(mat, diameter=diameter, channels=channels, anisotropy=anisotropy, channel_axis=channel_axis, z_axis=z_axis, do_3D=do_3D, min_size=min_size, progress=progressbar, normalize = normalize, flow_threshold = flow_threshold)        
-    return masks, flows
-
-def reduce_to_3D(out_float, is_4D=True):
-    if is_4D:
-        axis = (0,1,2)
-    else:
-        axis = (0,1)
-        
-    temp = np.max(out_float, axis=axis)
-    keep = list(np.where(temp>0)[0])
-    zeros = list(np.where(temp==0)[0])
-
-    for i in range(3-len(keep)):
-        keep.append(zeros[i])
-
-    if is_4D:
-        out_float = out_float[:,:,:,np.sort(keep)]
-    else:
-        out_float = out_float[:,:,np.sort(keep)]
-    return out_float
-
-def extract_channels(keep_channel, mat, is_4D=True):
-    mat2 = mat.copy()
-
-    if is_4D:
-        channels = range(mat.shape[3])
-        channels_discard = np.array(channels)[[x not in set(keep_channel) for x in channels]]
-    
-        for i in channels_discard:
-            mat2[:,:,:,i] = 0
-        mat2 = reduce_to_3D(mat2, is_4D=is_4D)
-    else:
-        channels = range(mat.shape[2])
-        channels_discard = np.array(channels)[[x not in set(keep_channel) for x in channels]]
-    
-        for i in channels_discard:
-            mat2[:,:,i] = 0
-        mat2 = reduce_to_3D(mat2, is_4D=is_4D)
-            
-    return mat2
 
 def apply_thresh_all_Z(out, bounds):
     mat = out.copy().astype('uint8')
@@ -211,8 +528,6 @@ def apply_thresh_all_Z(out, bounds):
             mat[j,:,:,i] = threshold_im(out[j], bounds[i][0], bounds[i][1])[:,:,i]
     return mat
 
-def sigmoid(x):
-    return 1 / (1 + np.exp(-x))
 
 def threshold_im(array, lower_percentile, upper_percentile):
     if upper_percentile is None:
@@ -281,26 +596,8 @@ def show_maxproj_with_outlines(mat2, masks):
 #         masks_copy[np.where(masks_copy==i)]=False
         
     
-def hide_masks(data, ID, data_filtered, mask_sele):
-    data_temp = data[data['ID']==ID]
-    hide_masks = np.where([x not in set(data_filtered.index) for x in data_temp.index])[0]
-    mask_copy = mask_sele.copy()
-    for i in hide_masks:
-        mask_copy[mask_copy==i]=0
-    return mask_copy
 
-def run_med_filter(out_float, kernel=3, is_4D = True):
-    out_med = out_float.copy()
 
-    if is_4D:
-        for i in tqdm(range(out_med.shape[0])):
-            for j in range(out_med.shape[-1]):
-                out_med[i,:,:,j] = med_filter(matrix=out_float[i,:,:,j], kernel=kernel)
-    else:
-        for j in range(out_med.shape[-1]):
-            out_med[:,:,j] = med_filter(matrix=out_float[:,:,j], kernel=kernel)
-        
-    return out_med
         
 
 def show_meanproj_with_outlines(mat2, masks):
@@ -315,63 +612,9 @@ def show_meanproj_with_outlines(mat2, masks):
 
     return max_proj
 
-def gamma_correct_channel(image_float, gamma, lower, upper, percentile):
-    
-    if percentile:
-        # threshold 
-        if lower==0:
-            lower=0
-        else:
-            lower = np.percentile(image_float, lower)
 
-        if upper==100:
-            upper=1
-        else:
-            upper = np.percentile(image_float, upper)
-    
-    # Clip the values to be in the valid range [0, 1]
-    image_float = np.clip((image_float-lower)/(upper-lower), a_min = 0, a_max = 1)
-    
-    # Apply gamma correction
-    image_corrected = np.power(image_float, gamma)
-    
-    return image_corrected
 
-def gamma_correct_image(im, gamma_dict, lower_dict, upper_dict, is_4D=True, percentile=True):
-    im_corrected = im.copy()
-    
-    if is_4D:
-        for i in range(im.shape[-1]):
-            im_corrected[:,:,:,i] = gamma_correct_channel(im[:,:,:,i], gamma_dict[i], lower_dict[i], upper_dict[i], percentile)
-    else:
-        for i in range(im.shape[-1]):
-            im_corrected[:,:,i] = gamma_correct_channel(im[:,:,i], gamma_dict[i], lower_dict[i], upper_dict[i], percentile)
-    return im_corrected
 
-def int_to_float(out):
-    if out.dtype=='uint16':
-        return out.astype(float)/((2**16)-1)
-    elif out.dtype=='uint8':
-        return out.astype(float)/((2**8)-1)
-
-def float_to_int(out, dtype='uint8'):
-    if dtype=='uint16':
-        return (out*((2**16)-1)).astype('uint16')
-    elif dtype=='uint8':
-        return (out*((2**8)-1)).astype('uint8')
-
-@nb.njit(parallel=True)
-def bgrnd_subtract(matrix, percentile):
-    res = []
-    for i in range(matrix.shape[-1]):
-        if percentile[i]==0:
-            res.append(0)
-        else:
-            res.append(estimate_percentile(matrix, percentile[i], i))
-
-    out = matrix-np.array(res)
-    
-    return  np.clip(out, 0, 1)
 
 @nb.njit(parallel=True)
 def estimate_percentile(matrix, percentile, channel):
@@ -454,9 +697,6 @@ def toggle_filters(all_files, parent_path, channels, out_float=None):
     background_dict = create_init_dict(N_channels, 0)
     
     f = partial(on_filter_change, widget_output, out_float, median_slider, channel_adjust, channel_show, gamma_dict, background_dict, gamma_slider, background_slider, lower_dict, upper_dict, upper_slider, lower_slider,zi_slider,parent_path, all_files, im_slider, channels)
-    
-    # e = partial(on_file_change, widget_output, out_float, median_slider, channel_adjust, channel_show, gamma_dict, background_dict, gamma_slider, background_slider, lower_dict, upper_dict, upper_slider, lower_slider,zi_slider, channels, parent_path, all_files, im_slider, median_slider, channel_adjust, channel_show, gamma_slider, background_slider, upper_slider, lower_slider, zi_slider, on_filter_change, f)
-    
     
     channel_show.observe(f, names='value')
     channel_adjust.observe(f, names='value')
@@ -611,42 +851,3 @@ def show_im(path, z_slice=10, N_channels=range(3)):
     buttons.observe(g, names='value')
     int_range_v.observe(e, names='value')
     return widgets.VBox([buttons, buttons2, upper_range, lower_range, int_range_v, text, output2]), bounds
-
-def impose_segmentation_all(ID, zi_per_job, Nzi, mat, masks, val, data, data_filtered, hide=True):
-    start = ID*zi_per_job
-    end = start + Nzi[ID][0]
-    mat_sele = mat[start:end]
-    mask_sele = masks[start:end]
-    
-    if hide:
-        mask_sele = hide_masks(data, ID, data_filtered, mask_sele)
-        
-    o = [find_boundaries(mask_sele[i], mode = 'outer', background = 0) for i in range(mask_sele.shape[0])]
-    M = np.stack(o, axis=0)
-
-
-    superimposed_data = mat_sele.copy()
-    for i in range(mat_sele.shape[0]):
-        masked = np.where(M[i])
-        
-        for c in range(mat_sele.shape[-1]):
-
-            superimposed_data[i,:,:,c][masked] = val
-        
-    return superimposed_data
-
-
-def impose_segmentation(mask_sele, mat_sele, val):
-    o = [find_boundaries(mask_sele[i], mode = 'outer', background = 0) for i in range(mask_sele.shape[0])]
-    M = np.stack(o, axis=0)
-
-
-    superimposed_data = mat_sele.copy()
-    for i in range(mat_sele.shape[0]):
-        masked = np.where(M[i])
-        
-        for c in range(mat_sele.shape[-1]):
-
-            superimposed_data[i,:,:,c][masked] = val
-        
-    return superimposed_data
