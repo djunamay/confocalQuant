@@ -19,9 +19,9 @@ python main.py \
 --y_channel 0 \
 --kernel 1 \
 --bgrnd_subtraction_vals 0 0 0 \
---diameter 15 \
+--diameter 23 \
 --inf_channels 2 0 \
---min_size 300 \
+--min_size 678 \
 --Ncells 25000 \
 --cells_per_job 300 \
 --NZi 4000 \
