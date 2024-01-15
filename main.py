@@ -1,38 +1,89 @@
 """
-The main file, which downloads WGS data from synapse and returns variant annotation and genotype data for specified genes
+Confocal Image Processing Script
+
+This script processes confocal microscopy images using the Cellpose model. It performs segmentation and analysis on specified channels, applying preprocessing steps if required. The results, including projections, masks, and processed data, are saved in the specified output folder.
+
+Parameters:
+- --folder (str): Path to the folder where the results will be stored.
+- --impath (str): Path to the microscopy image file.
+- --model_type (str): Type of Cellpose model to be used (default is 'cyto2').
+- --channels (list): List of channel indices to load from the image.
+- --y_channel (list): Variable indicating the channel to be plotted.
+- --kernel (int): Size of the median filter kernel for noise removal.
+- --bgrnd_subtraction_vals (list): List of values for per-channel background subtraction.
+- --diameter (int): Estimated diameter of objects in the image.
+- --inf_channels (list): List of channel indices to use in inference.
+- --min_size (int): Minimum size of objects to consider in segmentation.
+- --Ncells (int): Number of cells.
+- --cells_per_job (int): Number of cells per job.
+- --NZi (int): Number of Z slices.
+- --zi_per_job (int): Number of Z slices per job.
+- --xi_per_job (int): Number of X indices per job.
+- --yi_per_job (int): Number of Y indices per job.
+- --Njobs (int): Total number of jobs.
+- --gamma_dict (dict): Dictionary mapping channel indices to gamma correction parameters.
+- --lower_thresh_dict (dict): Dictionary mapping channel indices to lower thresholds for percentile-based adjustment.
+- --upper_thresh_dict (dict): Dictionary mapping channel indices to upper thresholds for percentile-based adjustment.
+- --outdir (str): Output directory for saving results.
+- --preprocess (bool): Enable preprocessing steps (median filter, background subtraction, thresholding).
+- --normalize (bool): Enable normalization of input data before inference.
+
+Usage:
+$ python main_script.py --folder path/to/results --impath path/to/image --channels 0 1 2 --y_channel 0 --kernel 3 --bgrnd_subtraction_vals 10 20 30 --diameter 50 --inf_channels 0 1 --min_size 100 --Ncells 500 --cells_per_job 50 --NZi 10 --zi_per_job 2 --xi_per_job 512 --yi_per_job 512 --Njobs 10 --gamma_dict {0: 1.0, 1: 1.2} --lower_thresh_dict {0: 10, 1: 20} --upper_thresh_dict {0: 90, 1: 95} --outdir path/to/output --preprocess --normalize
 """
 
+import os
+import argparse
+from distutils.util import strtobool
+import ast
+
 import numpy as np
-from aicsimageio import AICSImage
 import torch as ch
 from tqdm import tqdm
 from os import path
 
-from confocalQuant.segmentation import load_3D, int_to_float, run_med_filter, bgrnd_subtract, get_anisotropy, do_inference,  sigmoid, gamma_correct_image
-from confocalQuant.quantification import get_all_expectations
-from confocalQuant.image import save_mean_proj
-
-import argparse
-from distutils.util import strtobool
-import os
-
-import ast
-
+from aicsimageio import AICSImage
 from cellpose import models
 
-def parse_dict(arg):
-    try:
-        # Safely evaluate the string as a Python literal expression
-        return ast.literal_eval(arg)
-    except (SyntaxError, ValueError) as e:
-        raise argparse.ArgumentTypeError(f"Invalid dictionary format: {arg}")
-
-        
-def get_czi_files(directory): # this function is chatGPT3
-    files = [file for file in os.listdir(directory) if file.endswith(".czi")]
-    return sorted(files)
-
+from confocalQuant.segmentation import get_czi_files, load_3D, int_to_float, run_med_filter, bgrnd_subtract, get_anisotropy, do_inference,  sigmoid, gamma_correct_image
+from confocalQuant.data_handling import parse_dict
+from confocalQuant.image import save_mean_proj
+    
+    
 def process_image(folder, im_path, ID, model, channels, y_channel, kernel, per_channel_subtraction_vals, diameter, inf_channels, min_size, Ncells, NZi, start_Y, start_zi, xi_per_job, yi_per_job, Njobs, gamma_dict, lower_thresh_dict, upper_thresh_dict, outdir, preprocess, normalize):
+    """
+    Process confocal microscopy images and return cell segmentations using cellpose models.
+
+    Parameters:
+    - folder (str): Path to the folder where the results will be stored.
+    - im_path (str): Path to the microscopy image file.
+    - ID (int): Job ID.
+    - model: Cellpose model for inference.
+    - channels (list): List of channel indices to load from the image.
+    - y_channel (str): Variable indicating the channel to be plotted.
+    - kernel (int): Size of the median filter kernel for noise removal.
+    - per_channel_subtraction_vals (list): List of values for per-channel background subtraction.
+    - diameter (int): Estimated diameter of objects in the image.
+    - inf_channels (list): List of channel indices to use in inference.
+    - min_size (int): Minimum size of objects to consider in segmentation.
+    - Ncells (int): Number of cells.
+    - NZi (int): Number of Z slices.
+    - start_Y (int): Starting Y index for processing.
+    - start_zi (int): Starting Z index for processing.
+    - xi_per_job (int): Number of X indices per job.
+    - yi_per_job (int): Number of Y indices per job.
+    - Njobs (int): Total number of jobs.
+    - gamma_dict (dict): Dictionary mapping channel indices to gamma correction parameters.
+    - lower_thresh_dict (dict): Dictionary mapping channel indices to lower thresholds for percentile-based adjustment.
+    - upper_thresh_dict (dict): Dictionary mapping channel indices to upper thresholds for percentile-based adjustment.
+    - outdir (str): Output directory for saving results.
+    - preprocess (bool): Whether to apply preprocessing steps (median filter, background subtraction, thresholding) before inference.
+    - normalize (bool): Whether to normalize the input data before inference.
+
+    Returns:
+    - None: Saves results, including projections, masks, and other processed data, in the specified folder.
+    """
+        
     mmap_1 = path.join(folder, 'mat.npy')
 
     if not path.exists(mmap_1):
@@ -43,8 +94,6 @@ def process_image(folder, im_path, ID, model, channels, y_channel, kernel, per_c
     all_mat = np.lib.format.open_memmap(mmap_1, shape=(NZi, xi_per_job, yi_per_job, len(channels)), dtype=float, mode=mode)
     all_masks = np.lib.format.open_memmap(path.join(folder, 'masks.npy'), shape=(NZi, xi_per_job, yi_per_job), dtype='uint16', mode=mode)
     all_probs = np.lib.format.open_memmap(path.join(folder, 'probs.npy'), shape=(NZi, xi_per_job, yi_per_job), dtype=float, mode=mode)
-    #all_Y = np.lib.format.open_memmap(path.join(folder, 'Y.npy'), shape=(Ncells, len(channels)+len(y_channel)+3), dtype=float, mode=mode)
-    #Ncells_per_job = np.lib.format.open_memmap(path.join(folder, 'Ncells_per_job.npy'), shape=(Njobs,1), dtype=int, mode=mode)
     Nzi_per_job = np.lib.format.open_memmap(path.join(folder, 'Nzi_per_job.npy'), shape=(Njobs,1), dtype=int, mode=mode)
     randomID_per_job = np.lib.format.open_memmap(path.join(folder, 'randomID_per_job.npy'), shape=(Njobs,1), dtype=int, mode=mode)
 
@@ -79,7 +128,6 @@ def process_image(folder, im_path, ID, model, channels, y_channel, kernel, per_c
         anisotropy = get_anisotropy(img)
         print('Anisotropy: ' + str(anisotropy))
 
-        
         masks, flows = do_inference(out_float_subtract_correct, do_3D=True, model=model, anisotropy=anisotropy, diameter=diameter, channels=inf_channels, channel_axis=3, z_axis=0, min_size=min_size, normalize = normalize)
 
     else:
@@ -91,21 +139,6 @@ def process_image(folder, im_path, ID, model, channels, y_channel, kernel, per_c
         print('normalize' + str(normalize))
         masks, flows = do_inference(out_float, do_3D=True, model=model, anisotropy=anisotropy, diameter=diameter, channels=inf_channels, channel_axis=3, z_axis=0, min_size=min_size, normalize = normalize)
 
-#     # get expectations
-#     print('computing expectations')
-#     probs = sigmoid(flows[2])
-#     volume_per_voxel = np.prod(img.physical_pixel_sizes)
-#     Y = get_all_expectations(out_float, probs, masks, volume_per_voxel)
-  
-#     # remove background mean for channel of interest
-#     print('processing Y')
-#     for i in range(len(y_channel)):
-#         channel_zero_bgrnd_mean = np.mean(out_float[:,:,:,y_channel[i]][masks==0])
-#         Y = np.concatenate((Y, (Y[:,y_channel[i]]-channel_zero_bgrnd_mean).reshape(-1,1)), axis=1)
-
-#     # add image ID
-#     Y = np.concatenate((Y, np.repeat(ID, Y.shape[0]).reshape(-1,1)), axis=1)
-    
     # save projection 
     print('saving projection')
     np.random.seed(ID)
@@ -116,16 +149,11 @@ def process_image(folder, im_path, ID, model, channels, y_channel, kernel, per_c
     
     # save mat, masks, and Y_filtered
     print('saving..')
-    actual_NZi = out_float.shape[0]
-    #actual_Ncells = Y.shape[0]
-    
+    actual_NZi = out_float.shape[0]    
     end_zi = start_zi + actual_NZi
     all_mat[start_zi:end_zi] = out_float
     all_masks[start_zi:end_zi] = masks
     all_probs[start_zi:end_zi] = sigmoid(flows[2])
-    #end_Y = start_Y + actual_Ncells
-    #all_Y[start_Y:end_Y] = Y
-    #Ncells_per_job[ID] = actual_Ncells
     Nzi_per_job[ID] = actual_NZi
     randomID_per_job[ID] = randomID
     
