@@ -32,4 +32,5 @@ python main.py \
 --gamma_dict '{0: 1, 1: 1, 2: 1, 3: 1}' \
 --lower_thresh_dict '{0: 0, 1: 0, 2: 0, 3:0}' \
 --upper_thresh_dict '{0: 100, 1: 100, 2: 100, 3:100}' \
---outdir './outs/all_outs/segmentations/1101_cellrox_bodipy/'
+--outdir './outs/all_outs/segmentations/1101_cellrox_bodipy/' \
+--normalize
