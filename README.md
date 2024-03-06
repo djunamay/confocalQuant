@@ -1,4 +1,5 @@
-# End-to-end Confocal Image Processing using pre-trained models
+# End-to-end Confocal Image Processing 
+### using pre-trained Cellpose models
 
 - This repository provides a number of functions for image processing (loading, processing, and segmentation using inference by pre-trained Cellpose[^1] models), viewing (a number of notebook widgets are implemented to facilitate pre-processing and segmentation assessment), and plotting (normalized - intensities per segmented region by experimental category of interest, quantification, and representative images). 
 - `do_inference` function could easily be replaced with other pre-trained models (e.g. [^2], or from other sources)
@@ -12,7 +13,7 @@ Basic requirements:
 
 Cellpose installation:
 - [Cellpose](https://github.com/MouseLand/cellpose)
-*** install the models of interest **
+***install the models of interest**
 
 Other (available by `pip install`):
 - [argparse](https://pypi.org/project/argparse/)
@@ -22,6 +23,15 @@ Other (available by `pip install`):
 - [tqdm] 
 - [aicsimageio] 
 
+Install repo:
+```bash
+git clone
+```
+
+Run tests:
+```bash
+```
+
 ## Quickstart
 
 1. The `example_segmentation.ipynb` notebook will help you run a couple of quick experiments on your data to find segmentation parameters that work for you with your selected Cellpose model. 
@@ -30,6 +40,8 @@ Other (available by `pip install`):
 
 ```bash
 python main_script.py --folder path/to/results --impath path/to/image --channels 0 1 2 --y_channel 0 --kernel 3 --bgrnd_subtraction_vals 10 20 30 --diameter 50 --inf_channels 0 1 --min_size 100 --Ncells 500 --cells_per_job 50 --NZi 10 --zi_per_job 2 --xi_per_job 512 --yi_per_job 512 --Njobs 10 --gamma_dict {0: 1.0, 1: 1.2} --lower_thresh_dict {0: 10, 1: 20} --upper_thresh_dict {0: 90, 1: 95} --outdir path/to/output --preprocess --normalize
+```
+
 ```
 Parameters:
 - --folder (str): Path to the folder where the results will be stored.
@@ -55,6 +67,7 @@ Parameters:
 - --outdir (str): Output directory for saving results.
 - --preprocess (bool): Enable preprocessing steps (median filter, background subtraction, thresholding).
 - --normalize (bool): Enable normalization of input data before inference.
+```
 
 3. As results are processing, check the `--outdir` folder to monitor segmentation results (projections) as they come in #TODO: update this to be the projection of the segmentations, not projection, then segmentations
 
@@ -65,15 +78,24 @@ Parameters:
 
 ## Repository overview
 
-`example_segmentation.ipynb` notebook guiding user through the pipeline
-`main.py` performs image processing and segmentation with user-defined parameters
-`run_jobs.sh` example file for submission with job scheduler 
-`./models/` save ***cellpose** models here
-`./data/` save raw data here (in ***czi*** file format; example `./data/experiment_1`)
-`./outs/` outputs of `main_script.py` run will be saved here (including `masks.npy`, `mat.npy`, `Nzi_per_job.npy`, `probs.npy`, `randomID_per_job.npy`; example `./outs/experiment_1_out`)
-`./confocalQuant/` functions called in `main_script.py` for processing and segmentation and in `example_segmentation.ipynb` for viewing and plotting
+- `example_segmentation.ipynb` notebook guiding user through the pipeline
+- `main.py` performs image processing and segmentation with user-defined parameters
+- `run_jobs.sh` example file for submission with job scheduler 
+- `./models/` save ***cellpose** models here
+- `./data/` save raw data here (in ***czi*** file format; example `./data/experiment_1`)
+- `./outs/` outputs of `main_script.py` run will be saved here (including `masks.npy`, `mat.npy`, `Nzi_per_job.npy`, `probs.npy`, `randomID_per_job.npy`; example `./outs/experiment_1_out`)
+- `./confocalQuant/` functions called in `main_script.py` for processing and segmentation and in `example_segmentation.ipynb` for viewing and plotting
 
 ## Methods
+If the `--preprocess` flag is added, the following preprocessing steps are performed
+- background subtraction
+- median filtering
+- gamma correction
+- thresholding
+
+Per-segmented region intensities are computed 
+        P = temp_probs/np.sum(temp_probs)
+        E[M] = np.dot(temp_vals, P)
 
 ## References
 [^1]: @article{Stringer2020,
