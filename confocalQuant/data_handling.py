@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import os
 from os import path
 from typing import List, Tuple
 import ast
@@ -9,6 +10,18 @@ from matplotlib.patches import Rectangle
 import czifile
 import xml.etree.ElementTree as ET
 
+def print_failed_jobs(parent):
+    out_files = get_out_files(parent)
+    out_files = np.array(out_files)[np.argsort([int(x.split('_')[1].split('.')[0]) for x in out_files])]
+    for file in out_files:
+        if not is_string_present(parent+file, 'done'):
+            print(file)
+            
+def print_readme(path_to_readme):
+    with open(path_to_readme, 'r') as file:
+        contents = file.read()
+        print(contents)
+    
 def parse_dict(arg):
     """
     Parse a string representation of a dictionary into a Python dictionary.
@@ -97,9 +110,11 @@ def return_results(path_to_sbatch_file, prefix):
     all_mat = np.lib.format.open_memmap(path.join(prefix + folder, 'mat.npy'), shape=(NZi, xi_per_job, yi_per_job, len(channels)), dtype=float, mode=mode)
     all_masks = np.lib.format.open_memmap(path.join(prefix + folder, 'masks.npy'), shape=(NZi, xi_per_job, yi_per_job), dtype='uint16', mode=mode)
     Nzi_per_job = np.lib.format.open_memmap(path.join(prefix + folder, 'Nzi_per_job.npy'), shape=(Njobs,1), dtype=int, mode=mode)
-    randID_per_job = np.lib.format.open_memmap(path.join(prefix + folder, 'randomID_per_job.npy'), shape=(Njobs,1), dtype=int, mode=mode)
+    randID = np.lib.format.open_memmap(path.join(prefix + folder, 'randomID_per_job.npy'), shape=(Njobs,1), dtype=int, mode=mode)
+
+    probs = np.lib.format.open_memmap(path.join(prefix + folder, 'probs.npy'), shape=(Njobs,1), dtype=float, mode=mode)
     
-    return all_mat, all_masks, Nzi_per_job, cells_per_job, zi_per_job, randID_per_job
+    return all_mat, all_masks, Nzi_per_job, cells_per_job, zi_per_job, probs, randID
 
 def return_non_unique_indices(df):
     """
@@ -210,3 +225,36 @@ def compute_avs(data, filename, treatment, line, value):
     mean_per_filename = data.groupby(filename)[value].mean()
     mean_per_condition = data.groupby([treatment, line])[value].mean()
     return mean_per_filename, mean_per_condition
+
+
+def get_out_files(directory): # this function is chatGPT3
+    """
+    Get a list of sorted filenames with the extension '.out' from the specified directory.
+
+    Parameters:
+    - directory (str): The path to the directory containing the files.
+
+    Returns:
+    - list: A sorted list of filenames with the extension '.out'.
+    """
+    files = [file for file in os.listdir(directory) if file.endswith(".out")]
+    return sorted(files)
+
+def is_string_present(file_path, target_string):
+    """
+    Check if a target string is present in the content of a file.
+
+    Parameters:
+    - file_path (str): The path to the file to be checked.
+    - target_string (str): The string to search for in the file content.
+
+    Returns:
+    - bool: True if the target string is present in the file, False otherwise.
+    """
+    try:
+        with open(file_path, 'r') as file:
+            content = file.read()
+            return target_string in content
+    except FileNotFoundError:
+        print(f"File not found: {file_path}")
+        return False
