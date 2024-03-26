@@ -50,7 +50,7 @@ from confocalQuant.data_handling import parse_dict
 from confocalQuant.image import save_mean_proj
     
     
-def process_image(folder, im_path, ID, model, channels, y_channel, kernel, per_channel_subtraction_vals, diameter, inf_channels, min_size, Ncells, NZi, start_Y, start_zi, xi_per_job, yi_per_job, Njobs, gamma_dict, lower_thresh_dict, upper_thresh_dict, outdir, preprocess, normalize):
+def process_image(folder, im_path, ID, model, channels, y_channel, kernel, per_channel_subtraction_vals, diameter, inf_channels, min_size, Ncells, NZi, start_Y, start_zi, xi_per_job, yi_per_job, Njobs, gamma_dict, lower_thresh_dict, upper_thresh_dict, outdir, preprocess, normalize, stitch):
     """
     Process confocal microscopy images and return cell segmentations using cellpose models.
 
@@ -128,7 +128,7 @@ def process_image(folder, im_path, ID, model, channels, y_channel, kernel, per_c
         anisotropy = get_anisotropy(img)
         print('Anisotropy: ' + str(anisotropy))
 
-        masks, flows = do_inference(out_float_subtract_correct, do_3D=True, model=model, anisotropy=anisotropy, diameter=diameter, channels=inf_channels, channel_axis=3, z_axis=0, min_size=min_size, normalize = normalize)
+        masks, flows = do_inference(out_float_subtract_correct, do_3D=True, model=model, anisotropy=anisotropy, diameter=diameter, channels=inf_channels, channel_axis=3, z_axis=0, min_size=min_size, normalize = normalize, stitch=stitch)
 
     else:
         print('preprocess is False')
@@ -137,7 +137,7 @@ def process_image(folder, im_path, ID, model, channels, y_channel, kernel, per_c
         anisotropy = get_anisotropy(img)
         print('Anisotropy: ' + str(anisotropy))
         print('normalize' + str(normalize))
-        masks, flows = do_inference(out_float, do_3D=True, model=model, anisotropy=anisotropy, diameter=diameter, channels=inf_channels, channel_axis=3, z_axis=0, min_size=min_size, normalize = normalize)
+        masks, flows = do_inference(out_float, do_3D=True, model=model, anisotropy=anisotropy, diameter=diameter, channels=inf_channels, channel_axis=3, z_axis=0, min_size=min_size, normalize = normalize, stitch=stitch)
 
     # save projection 
     print('saving projection')
@@ -184,6 +184,7 @@ if __name__ == '__main__':
     parser.add_argument('--outdir', type=str, required=True)
     parser.add_argument('--preprocess', action='store_true', help='Enable preprocessing', default=False)
     parser.add_argument('--normalize', action='store_true', help='Enable preprocessing', default=False)
+    parser.add_argument('--stitch', action='store_true', help='Enable preprocessing', default=False)
 
     args = parser.parse_args()
     cells_per_job = args.cells_per_job
@@ -202,7 +203,7 @@ if __name__ == '__main__':
     print(im_path)
     
     print('starting processing')
-    process_image(args.folder, im_path, ID, model, args.channels, args.y_channel, args.kernel, args.bgrnd_subtraction_vals, args.diameter, args.inf_channels, args.min_size, args.Ncells, args.NZi, start_Y, start_zi, args.xi_per_job, args.yi_per_job, args.Njobs, args.gamma_dict, args.lower_thresh_dict, args.upper_thresh_dict, args.outdir, args.preprocess, args.normalize)
+    process_image(args.folder, im_path, ID, model, args.channels, args.y_channel, args.kernel, args.bgrnd_subtraction_vals, args.diameter, args.inf_channels, args.min_size, args.Ncells, args.NZi, start_Y, start_zi, args.xi_per_job, args.yi_per_job, args.Njobs, args.gamma_dict, args.lower_thresh_dict, args.upper_thresh_dict, args.outdir, args.preprocess, args.normalize, args.stitch)
     
     
     
