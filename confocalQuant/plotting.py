@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from PIL import Image
 from aicsimageio import AICSImage
+import statsmodels.api as sm
+from statsmodels.formula.api import mixedlm
 
 from .stats import compute_nested_anova
 
