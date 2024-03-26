@@ -5,6 +5,28 @@ from matplotlib.patches import Rectangle
 
 from .segmentation import bgrnd_subtract, gamma_correct_image, extract_channels, float_to_int
 
+def get_rep_im(treatment, line, all_file_names, mean_per_condition, mean_per_filename, dict_treat, dict_line):
+    """
+    Get the representative image ID for a specific treatment and line based on mean intensity values.
+
+    Parameters:
+    - treatment (str): The treatment condition.
+    - line (str): The cell line.
+    - all_file_names (list): List of all file names.
+    - mean_per_condition (pd.DataFrame): Mean intensity values per condition and line.
+    - mean_per_filename (pd.Series): Mean intensity values per file name.
+    - dict_treat (dict): Dictionary mapping file names to treatment conditions.
+    - dict_line (dict): Dictionary mapping file names to cell lines.
+
+    Returns:
+    - int: The representative image ID.
+    """
+    cond_mean = mean_per_condition.loc[treatment][line]
+    temp = mean_per_filename[[(dict_treat[x]==treatment) & (dict_line[x]==line) for x in mean_per_filename.index]]
+    filename = temp.index[np.argmin(np.abs(temp-cond_mean))]
+    ID = np.argwhere([filename in x for x in all_file_names])[0][0]
+    return ID
+
 def save_mean_proj(mat_sele, mask_sele, outdir):
     """
     Calculate the mean projection of a 3D matrix, perform gamma correction,
