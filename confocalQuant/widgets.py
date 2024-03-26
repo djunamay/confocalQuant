@@ -1,8 +1,10 @@
 import ipywidgets as widgets
+import numpy as np
 from ipywidgets import interact, interactive, fixed, interact_manual
 from IPython.display import display, clear_output
 from PIL import Image
 from tqdm import tqdm
+from functools import partial
 
 from .segmentation import bgrnd_subtract, gamma_correct_image, run_med_filter, extract_channels, float_to_int, import_im
 
