@@ -4,6 +4,87 @@ import statsmodels.api as sm
 import numba as nb
 from statsmodels.regression.mixed_linear_model import MixedLM
 from statsmodels.formula.api import mixedlm
+from tqdm import tqdm 
+
+def load_im(ID, zi_per_job, Nzi_per_job, probs, all_masks, all_mat):
+    start = ID*zi_per_job
+    end = start + Nzi_per_job[ID][0]
+
+    probs_sele = probs[start:end].ravel()
+    masks_sele = all_masks[start:end].ravel()
+    out_float_sele = all_mat[start:end]
+
+    M_unique = np.unique(masks_sele)
+    
+    return probs_sele, masks_sele, out_float_sele, M_unique
+
+@nb.njit()
+def compute_channel_stats_per_mask(masks_sele, M, probs_sele, vals, temp):
+    
+    index = masks_sele==M
+    temp_probs = probs_sele[index]
+    P = temp_probs/np.sum(temp_probs)
+    temp_vals = vals[:,index]
+        
+    E = temp_vals@P.reshape(-1,1)
+    E = E.reshape(-1)
+    N = np.sum(index)
+    
+    temp[:len(E)] = E
+    temp[-1] = N
+    
+    return temp
+    
+@nb.njit(parallel=True)
+def compute_stats_all_masks(outputs, M_unique, masks_sele, probs_sele, vals, temp):
+    masks = M_unique[1:]
+    for i in nb.prange(len(masks)):
+        M = masks[i]
+        outputs[i] = compute_channel_stats_per_mask(masks_sele, M, probs_sele, vals, temp)
+
+            
+def format_stats_as_df(ID, outputs, files, lines, treat, channel_names):
+    df = pd.DataFrame(outputs)
+    df.columns = channel_names + ['size']
+    df['file_ID'] = ID
+    df['mask_ID'] = range(1, df.shape[0]+1)
+    df['file'] = files[ID]
+    df['line'] = lines[ID]
+    df['treatment'] = treat[ID]
+    return df
+
+def extract_channel(data, discretize = False, thresh = None):
+    if discretize:
+        return data.ravel()>thresh
+    else:
+        return data.ravel()
+    
+def compute_per_cell_stats(zi_per_job, Nzi_per_job, probs, all_masks, all_mat, thresh, files, lines, treat, channel_names):
+
+    all_outs = []
+    
+    for ID in tqdm(range(len(files))):
+        probs_sele, masks_sele, out_float_sele, M_unique = load_im(ID, zi_per_job, Nzi_per_job, probs, all_masks, all_mat)
+        nchannels = out_float_sele.shape[-1]
+        outputs = np.empty((len(M_unique)-1, nchannels+1))
+        nvoxels = np.prod(out_float_sele.shape[:3])
+        vals = np.empty((nchannels, nvoxels))
+        
+        for C in range(nchannels):
+            
+            T = thresh[C]
+            
+            if T is not None:
+                vals[C] = extract_channel(out_float_sele[:,:,:,C], discretize = True, thresh = T)
+            else:
+                vals[C] = extract_channel(out_float_sele[:,:,:,C])
+        
+        temp = np.empty(nchannels+1)
+        compute_stats_all_masks(outputs, M_unique, masks_sele, probs_sele, vals, temp)
+        
+        all_outs.append(format_stats_as_df(ID, outputs, files, lines, treat, channel_names))
+        
+    return pd.concat(all_outs)
 
 
 def compute_nested_anova(resE, score, group, nested_col):
