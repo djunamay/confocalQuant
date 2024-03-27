@@ -10,6 +10,20 @@ from matplotlib.patches import Rectangle
 import czifile
 import xml.etree.ElementTree as ET
 
+def get_meta_vectors(in_parent, files):
+    meta = pd.read_csv(in_parent + 'temp.csv')
+    meta.columns = ['well', 'Treatment']
+    meta['line'] = np.array([str(x).split(' ')[0] for x in meta['Treatment']])
+    meta['treatment'] = np.array([str(x).split(' ')[1] if len(str(x).split(' '))>1 else np.nan for x in meta['Treatment']])
+    meta['well'] = [x.split('-')[0] for x in meta['well']]
+
+    dictionary = dict(zip(meta['well'], meta['line']))
+    dictionary2 = dict(zip(meta['well'], meta['treatment']))
+
+    lines = np.array([dictionary[x.split('_')[0]] for x in files])
+    treat = np.array([dictionary2[x.split('_')[0]] for x in files])
+    return lines, treat
+
 def print_failed_jobs(parent):
     out_files = get_out_files(parent)
     out_files = np.array(out_files)[np.argsort([int(x.split('_')[1].split('.')[0]) for x in out_files])]
