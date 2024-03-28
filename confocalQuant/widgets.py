@@ -8,6 +8,46 @@ from functools import partial
 
 from .segmentation import bgrnd_subtract, gamma_correct_image, run_med_filter, extract_channels, float_to_int, import_im
 
+import os
+from IPython.display import display,  clear_output
+import ipywidgets as widgets
+from PIL import Image
+
+
+class ImageBrowser:
+    def __init__(self, folder_path):
+        self.folder_path = folder_path
+        self.image_files = [f for f in os.listdir(folder_path) if f.endswith('.png')]
+        self.current_index = 0
+        self.discard = []
+        
+        self.button = widgets.Button(description="next")
+        
+        self.warning = widgets.Button(description='discard', button_style='', value=False)
+            
+        self.output = widgets.Output()
+        display(widgets.HBox([self.button, self.warning]), self.output)
+        
+        self.button.on_click(self.on_button_clicked)
+        self.warning.on_click(self.on_warning_clicked)
+        
+    def get_current_image_data(self):
+        image_path = os.path.join(self.folder_path, self.image_files[self.current_index])
+        with open(image_path, 'rb') as f:
+            return f.read()
+        
+    def on_button_clicked(self,b):
+        with self.output:
+            clear_output(wait=True)
+            image_path = os.path.join(self.folder_path, self.image_files[self.current_index])
+            display(Image.open(image_path))
+            self.current_index +=1
+            #clear_output(wait=True)
+            
+    def on_warning_clicked(self,b):
+        with self.output:
+            self.discard.append(self.image_files[self.current_index-1])
+            
 def toggle_filters(all_files, parent_path, channels, out_float=None):
 
     """
