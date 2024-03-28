@@ -3,33 +3,41 @@
 
 - This repository provides a number of functions for image processing (loading, processing, and segmentation using inference by pre-trained Cellpose[^1] models), viewing (a number of notebook widgets are implemented to facilitate pre-processing and segmentation assessment), and plotting (normalized - intensities per segmented region by experimental category of interest, quantification, and representative images). 
 - `do_inference` function could easily be replaced with other pre-trained models (e.g. [^2], or from other sources)
-- The repository also provides a custom droplet / particle analysis 
 
 ## Prerequisites
 
-Basic requirements:
+1. Basic requirements:
 - Python 3
 - Access to a GPU
 
-Cellpose installation:
+2. Cellpose installation:
 - [Cellpose](https://github.com/MouseLand/cellpose)
-***install the models of interest**
 
-Other (available by `pip install`):
-- [argparse](https://pypi.org/project/argparse/)
+3. Download Cellpose models:
+For more info see [Cellpose docs](https://cellpose.readthedocs.io/en/latest/models.html)
+```python
+from cellpose import models
+model = models.Cellpose(model_type='cyto2')
+```
+
+4. Other (available by `pip install`):
+- [argparse]
 - [ast]
-- [numpy](https://numpy.org/install/)
+- [numpy]
 - [torch]
 - [tqdm] 
 - [aicsimageio] 
 
-Install repo:
+5. Install repo:
 ```bash
 git clone
 ```
 
-Run tests:
+6. Run tests:
 ```bash
+pip install assertpy
+pip install pytest
+python -m pytest tests.py
 ```
 
 ## Quickstart
@@ -42,38 +50,9 @@ Run tests:
 python main_script.py --folder path/to/results --impath path/to/image --channels 0 1 2 --y_channel 0 --kernel 3 --bgrnd_subtraction_vals 10 20 30 --diameter 50 --inf_channels 0 1 --min_size 100 --Ncells 500 --cells_per_job 50 --NZi 10 --zi_per_job 2 --xi_per_job 512 --yi_per_job 512 --Njobs 10 --gamma_dict {0: 1.0, 1: 1.2} --lower_thresh_dict {0: 10, 1: 20} --upper_thresh_dict {0: 90, 1: 95} --outdir path/to/output --preprocess --normalize
 ```
 
-```
-Parameters:
-- --folder (str): Path to the folder where the results will be stored.
-- --impath (str): Path to the microscopy image file.
-- --model_type (str): Type of Cellpose model to be used (default is 'cyto2').
-- --channels (list): List of channel indices to load from the image.
-- --y_channel (list): Variable indicating the channel to be plotted.
-- --kernel (int): Size of the median filter kernel for noise removal.
-- --bgrnd_subtraction_vals (list): List of values for per-channel background subtraction.
-- --diameter (int): Estimated diameter of objects in the image.
-- --inf_channels (list): List of channel indices to use in inference.
-- --min_size (int): Minimum size of objects to consider in segmentation.
-- --Ncells (int): Number of cells.
-- --cells_per_job (int): Number of cells per job.
-- --NZi (int): Number of Z slices.
-- --zi_per_job (int): Number of Z slices per job.
-- --xi_per_job (int): Number of X indices per job.
-- --yi_per_job (int): Number of Y indices per job.
-- --Njobs (int): Total number of jobs.
-- --gamma_dict (dict): Dictionary mapping channel indices to gamma correction parameters.
-- --lower_thresh_dict (dict): Dictionary mapping channel indices to lower thresholds for percentile-based adjustment.
-- --upper_thresh_dict (dict): Dictionary mapping channel indices to upper thresholds for percentile-based adjustment.
-- --outdir (str): Output directory for saving results.
-- --preprocess (bool): Enable preprocessing steps (median filter, background subtraction, thresholding).
-- --normalize (bool): Enable normalization of input data before inference.
-```
-
 3. As results are processing, check the `--outdir` folder to monitor segmentation results (projections) as they come in #TODO: update this to be the projection of the segmentations, not projection, then segmentations
 
 4. Finally, go back to the `example_segmentation.ipynb` notebook to view the results, perform some simple sanity checks, and plot signal intensity quantifications for segmented regions.
-
-## Droplet / Particle analysis
 
 
 ## Repository overview
@@ -86,16 +65,6 @@ Parameters:
 - `./outs/` outputs of `main_script.py` run will be saved here (including `masks.npy`, `mat.npy`, `Nzi_per_job.npy`, `probs.npy`, `randomID_per_job.npy`; example `./outs/experiment_1_out`)
 - `./confocalQuant/` functions called in `main_script.py` for processing and segmentation and in `example_segmentation.ipynb` for viewing and plotting
 
-## Methods
-If the `--preprocess` flag is added, the following preprocessing steps are performed
-- background subtraction
-- median filtering
-- gamma correction
-- thresholding
-
-Per-segmented region intensities are computed 
-        P = temp_probs/np.sum(temp_probs)
-        E[M] = np.dot(temp_vals, P)
 
 ## References
 [^1]: @article{Stringer2020,
