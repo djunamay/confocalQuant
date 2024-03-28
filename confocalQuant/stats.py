@@ -115,30 +115,30 @@ def compute_nested_anova(resE, score, group, nested_col):
     
     return text0   
 
-@nb.njit(parallel=True)
-def get_expectations(M_unique, masks_sele, probs_sele, vals_sele, E, V, N):
-    """
-    Calculate expectations, variance, and count for each unique mask value.
+# @nb.njit(parallel=True)
+# def get_expectations(M_unique, masks_sele, probs_sele, vals_sele, E, V, N):
+#     """
+#     Calculate expectations, variance, and count for each unique mask value.
 
-    Parameters:
-    - M_unique (int): Number of unique mask values.
-    - masks_sele (np.ndarray): Selected mask values.
-    - probs_sele (np.ndarray): Probabilities associated with the mask values.
-    - vals_sele (np.ndarray): Values associated with the mask values.
-    - E (np.ndarray): Array to store expectations.
-    - V (np.ndarray): Array to store variance.
-    - N (np.ndarray): Array to store count.
+#     Parameters:
+#     - M_unique (int): Number of unique mask values.
+#     - masks_sele (np.ndarray): Selected mask values.
+#     - probs_sele (np.ndarray): Probabilities associated with the mask values.
+#     - vals_sele (np.ndarray): Values associated with the mask values.
+#     - E (np.ndarray): Array to store expectations.
+#     - V (np.ndarray): Array to store variance.
+#     - N (np.ndarray): Array to store count.
 
-    Returns:
-    - None: Modifies the input arrays in-place.
-    """
-    for M in nb.prange(M_unique):
-        index = masks_sele==M
-        temp_probs = probs_sele[index]
-        temp_vals = vals_sele[index]
+#     Returns:
+#     - None: Modifies the input arrays in-place.
+#     """
+#     for M in nb.prange(M_unique):
+#         index = masks_sele==M
+#         temp_probs = probs_sele[index]
+#         temp_vals = vals_sele[index]
 
-        #E_uniform[M] = np.mean(temp_vals)
-        P = temp_probs/np.sum(temp_probs)
-        E[M] = np.dot(temp_vals, P)
-        V[M] = np.dot((np.power((temp_vals-E[M]),2)), P)/E[M]
-        N[M] = np.sum(index)
+#         #E_uniform[M] = np.mean(temp_vals)
+#         P = temp_probs/np.sum(temp_probs)
+#         E[M] = np.dot(temp_vals, P)
+#         V[M] = np.dot((np.power((temp_vals-E[M]),2)), P)/E[M]
+#         N[M] = np.sum(index)
