@@ -30,27 +30,27 @@ def plot_boxplot_by_treatment(value, line, df, colors, colors2):
     plt.title(line)
 
     
-def plot_hist(path, channel, nbins, scale_log, alpha, color, density):
-    """
-    Plot histogram of pixel intensities from a specified channel in an AICSImage.
+# def plot_hist(path, channel, nbins, scale_log, alpha, color, density):
+#     """
+#     Plot histogram of pixel intensities from a specified channel in an AICSImage.
 
-    Parameters:
-    - path (str): Path to the AICSImage file.
-    - channel (int): Index of the channel to extract pixel intensities.
-    - nbins (int): Number of bins in the histogram.
-    - scale_log (bool): Whether to scale the histogram in log scale.
-    - alpha (float): Transparency of the histogram bars.
-    - color (str): Color of the histogram bars.
-    - density (bool): Whether to normalize the histogram to form a probability density.
+#     Parameters:
+#     - path (str): Path to the AICSImage file.
+#     - channel (int): Index of the channel to extract pixel intensities.
+#     - nbins (int): Number of bins in the histogram.
+#     - scale_log (bool): Whether to scale the histogram in log scale.
+#     - alpha (float): Transparency of the histogram bars.
+#     - color (str): Color of the histogram bars.
+#     - density (bool): Whether to normalize the histogram to form a probability density.
 
-    Returns:
-    - None
-    """
-    img = AICSImage(path)
-    T = img.data[0,channel,:,:,:].ravel()
-    T[T==0] = 1
-    plt.hist(np.log(int_to_float(T)),nbins, alpha=alpha, color=color, density=density)
-    None
+#     Returns:
+#     - None
+#     """
+#     img = AICSImage(path)
+#     T = img.data[0,channel,:,:,:].ravel()
+#     T[T==0] = 1
+#     plt.hist(np.log(int_to_float(T)),nbins, alpha=alpha, color=color, density=density)
+#     None
   
 def plot_treatments(df, x, line, colors, lognormal, binwidth,lab_height, grp='well', size=(20,7)):
     """
@@ -141,26 +141,26 @@ def plot_lines(df, x, treatment, colors, lognormal, binwidth, grp='well'):
         ax[i].legend(loc='upper left', bbox_to_anchor=(1, 1))
     
 
-def plot_scatter(condition, x, y, xlab, ylab):
-    """
-    Scatter plot grouped by a condition.
+# def plot_scatter(condition, x, y, xlab, ylab):
+#     """
+#     Scatter plot grouped by a condition.
 
-    Parameters:
-    - condition (np.ndarray): Array containing the grouping condition.
-    - x (np.ndarray): Values for the x-axis.
-    - y (np.ndarray): Values for the y-axis.
-    - xlab (str): Label for the x-axis.
-    - ylab (str): Label for the y-axis.
+#     Parameters:
+#     - condition (np.ndarray): Array containing the grouping condition.
+#     - x (np.ndarray): Values for the x-axis.
+#     - y (np.ndarray): Values for the y-axis.
+#     - xlab (str): Label for the x-axis.
+#     - ylab (str): Label for the y-axis.
 
-    Returns:
-    - None
-    """
-    for i in np.unique(condition):
-        index = condition==i
-        plt.scatter(x[index], y[index], label=i)
-        plt.legend()
-        plt.xlabel(xlab)
-        plt.ylabel(ylab)
-        plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
+#     Returns:
+#     - None
+#     """
+#     for i in np.unique(condition):
+#         index = condition==i
+#         plt.scatter(x[index], y[index], label=i)
+#         plt.legend()
+#         plt.xlabel(xlab)
+#         plt.ylabel(ylab)
+#         plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
 
 
