@@ -8,6 +8,28 @@ from statsmodels.formula.api import mixedlm
 
 from .stats import compute_nested_anova
 
+def plot_boxplot_by_treatment(value, line, df, colors, colors2):
+    
+    avg_lipidspot = df.groupby(['line', 'treatment', 'well'])[value].mean().reset_index(name='av')
+
+    d = avg_lipidspot[avg_lipidspot['line']==line]
+
+    ax = sns.boxplot(data = d, x = 'treatment', showfliers=False, y = 'av', dodge = True, order = ['vehicle', 'CDP-choline', 'rosiglitazone'], palette = colors, width=.5, boxprops=dict(alpha=1), medianprops=dict(color='black', alpha=1), whiskerprops=dict(color='black', alpha=1), capprops=dict(color = 'black', alpha=1))
+    sns.stripplot(data=d, x='treatment', y='av', palette = colors2, dodge=True, jitter=True, alpha=1,  order = ['vehicle', 'CDP-choline', 'rosiglitazone'])
+
+    pairs = [(("vehicle"), ("CDP-choline")), (("vehicle"), ("rosiglitazone"))]  # Define pairs to compare
+    annotator = Annotator(ax, pairs, data=d, x='treatment', y='av', order = ['vehicle', 'CDP-choline', 'rosiglitazone'])
+    annotator.configure(test='t-test_ind', text_format='full', loc='inside', verbose=2, show_test_name=False)
+    
+    annotator.apply_and_annotate()
+    
+    plt.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
+    plt.xticks(rotation=45)
+    plt.ylabel(value)
+    plt.xlabel('')
+    plt.title(line)
+
+    
 def plot_hist(path, channel, nbins, scale_log, alpha, color, density):
     """
     Plot histogram of pixel intensities from a specified channel in an AICSImage.
