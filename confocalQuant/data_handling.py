@@ -10,6 +10,18 @@ from matplotlib.patches import Rectangle
 import czifile
 import xml.etree.ElementTree as ET
 
+def load_im_from_memmap_ravel(ID, zi_per_job, Nzi_per_job, probs, all_masks, all_mat):
+    start = ID*zi_per_job
+    end = start + Nzi_per_job[ID][0]
+
+    probs_sele = probs[start:end].ravel()
+    masks_sele = all_masks[start:end].ravel()
+    out_float_sele = all_mat[start:end]
+
+    M_unique = np.unique(masks_sele)
+    
+    return probs_sele, masks_sele, out_float_sele, M_unique
+
 def load_im_from_memmap(ID, zi_per_job, Nzi_per_job, probs, all_masks, all_mat):
     start = ID*zi_per_job
     end = start + Nzi_per_job[ID][0]
@@ -140,39 +152,6 @@ def return_results(path_to_sbatch_file, prefix):
     probs = np.lib.format.open_memmap(path.join(prefix + folder, 'probs.npy'), shape=(Njobs,1), dtype=float, mode=mode)
     
     return all_mat, all_masks, Nzi_per_job, cells_per_job, zi_per_job, probs, randID
-
-def return_non_unique_indices(df):
-    """
-    Identify and print non-unique indices in the columns of a DataFrame.
-
-    Parameters:
-    - df: pandas DataFrame
-        The DataFrame containing the data.
-
-    Returns:
-    - temp: pandas DataFrame
-        A DataFrame with unique values for each column.
-
-    This function iterates through the columns of the input DataFrame and prints the column names
-    where non-unique indices are found. It returns a DataFrame with unique values for each column.
-
-    Example:
-    return_non_unique_indices(my_dataframe)
-    """
-    res = []
-    names = []
-    for col in df.columns:
-        try:
-            r = df[col].unique()
-        except TypeError:
-            r = np.unique([str(x) for x in df[col]])
-        res.append(r)
-        names.append(col)
-    temp = pd.DataFrame(res)
-    temp.index = names
-    non_unique_indices = temp.index[np.argwhere(np.array([np.sum([x!=None for x in temp.iloc[y]]) for y in range(temp.shape[0])])>1).reshape(-1)]
-    print('\n'.join(non_unique_indices))
-    return temp
 
 def print_metadata(path_to_czi):
     """
