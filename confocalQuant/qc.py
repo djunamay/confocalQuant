@@ -6,6 +6,39 @@ import pandas as pd
 import xml.etree.ElementTree as ET
 import matplotlib.pyplot as plt 
 
+def return_non_unique_indices(df):
+    """
+    Identify and print non-unique indices in the columns of a DataFrame.
+
+    Parameters:
+    - df: pandas DataFrame
+        The DataFrame containing the data.
+
+    Returns:
+    - temp: pandas DataFrame
+        A DataFrame with unique values for each column.
+
+    This function iterates through the columns of the input DataFrame and prints the column names
+    where non-unique indices are found. It returns a DataFrame with unique values for each column.
+
+    Example:
+    return_non_unique_indices(my_dataframe)
+    """
+    res = []
+    names = []
+    for col in df.columns:
+        try:
+            r = df[col].unique()
+        except TypeError:
+            r = np.unique([str(x) for x in df[col]])
+        res.append(r)
+        names.append(col)
+    temp = pd.DataFrame(res)
+    temp.index = names
+    non_unique_indices = temp.index[np.argwhere(np.array([np.sum([x!=None for x in temp.iloc[y]]) for y in range(temp.shape[0])])>1).reshape(-1)]
+    print('\n'.join(non_unique_indices))
+    return temp
+
 def return_channel_moments_per_im(files, path_to_parent, nchannels, max_val):
     """
     Calculate mean, standard deviation, and percentage of values per channel in each image.
@@ -125,25 +158,25 @@ def get_metadata(czi_file_path):
         
         return dictionary2
 
-#####
+# #####
     
 
 
 
-def plot_by(condition, x, y, xlab, ylab):
-    for i in np.unique(condition):
-        index = condition==i
-        plt.scatter(x[index], y[index], label=i)
-        plt.legend()
-        plt.xlabel(xlab)
-        plt.ylabel(ylab)
-        plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
+# def plot_by(condition, x, y, xlab, ylab):
+#     for i in np.unique(condition):
+#         index = condition==i
+#         plt.scatter(x[index], y[index], label=i)
+#         plt.legend()
+#         plt.xlabel(xlab)
+#         plt.ylabel(ylab)
+#         plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
 
-def plot_hist(path, channel, nbins, scale_log, alpha, color, density):
-    img = AICSImage(path)
-    plt.hist(img.data[0,channel,:,:,:].ravel(),nbins, alpha=alpha, color=color, density=density)
-    if scale_log:
-        plt.yscale('log')
-    None
+# def plot_hist(path, channel, nbins, scale_log, alpha, color, density):
+#     img = AICSImage(path)
+#     plt.hist(img.data[0,channel,:,:,:].ravel(),nbins, alpha=alpha, color=color, density=density)
+#     if scale_log:
+#         plt.yscale('log')
+#     None
     
 
