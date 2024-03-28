@@ -154,7 +154,6 @@ def do_inference(mat, do_3D, model, progressbar=None, anisotropy=None, diameter=
     return masks, flows
 
 
-
     
 def sigmoid(x):
     """
@@ -341,45 +340,6 @@ def impose_segmentation_all(ID, zi_per_job, Nzi, mat, masks, val):
         
     return superimposed_data
 
-# def impose_segmentation_all(ID, zi_per_job, Nzi, mat, masks, val, data, data_filtered, hide=True):
-#     """
-#     Generate superimposed data by imposing segmentation masks on selected image slices.
-
-#     Parameters:
-#     - ID (int): Job ID.
-#     - zi_per_job (int): Number of Z slices per job.
-#     - Nzi (np.ndarray): Array containing the number of Z slices for each job.
-#     - mat (np.ndarray): Input image data.
-#     - masks (np.ndarray): Segmentation masks.
-#     - val (float): Value to set in the superimposed regions.
-#     - data (np.ndarray): Original data used for masking.
-#     - data_filtered (np.ndarray): Filtered data used for masking.
-#     - hide (bool): Indicates whether to hide masks using additional criteria. Default is True.
-
-#     Returns:
-#     - np.ndarray: Superimposed data with segmentation masks imposed on selected image slices.
-#     """
-#     start = ID*zi_per_job
-#     end = start + Nzi[ID][0]
-#     mat_sele = mat[start:end]
-#     mask_sele = masks[start:end]
-    
-#     if hide:
-#         mask_sele = hide_masks(data, ID, data_filtered, mask_sele)
-        
-#     o = [find_boundaries(mask_sele[i], mode = 'outer', background = 0) for i in range(mask_sele.shape[0])]
-#     M = np.stack(o, axis=0)
-
-
-#     superimposed_data = mat_sele.copy()
-#     for i in range(mat_sele.shape[0]):
-#         masked = np.where(M[i])
-        
-#         for c in range(mat_sele.shape[-1]):
-
-#             superimposed_data[i,:,:,c][masked] = val
-        
-#     return superimposed_data
 
 def impose_segmentation(mask_sele, mat_sele, val):
     """
