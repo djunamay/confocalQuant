@@ -59,11 +59,11 @@ def extract_channel(data, discretize = False, thresh = None):
     else:
         return data.ravel()
     
-def compute_per_cell_stats(zi_per_job, Nzi_per_job, probs, all_masks, all_mat, thresh, files, lines, treat, channel_names):
+def compute_per_cell_stats(file_ids, zi_per_job, Nzi_per_job, probs, all_masks, all_mat, thresh, files, lines, treat, channel_names):
 
     all_outs = []
     
-    for ID in tqdm(range(len(files))):
+    for ID in tqdm(file_ids):
         probs_sele, masks_sele, out_float_sele, M_unique = load_im(ID, zi_per_job, Nzi_per_job, probs, all_masks, all_mat)
         nchannels = out_float_sele.shape[-1]
         outputs = np.empty((len(M_unique)-1, nchannels+1))
