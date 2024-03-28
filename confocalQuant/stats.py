@@ -6,17 +6,7 @@ from statsmodels.regression.mixed_linear_model import MixedLM
 from statsmodels.formula.api import mixedlm
 from tqdm import tqdm 
 
-def load_im(ID, zi_per_job, Nzi_per_job, probs, all_masks, all_mat):
-    start = ID*zi_per_job
-    end = start + Nzi_per_job[ID][0]
 
-    probs_sele = probs[start:end].ravel()
-    masks_sele = all_masks[start:end].ravel()
-    out_float_sele = all_mat[start:end]
-
-    M_unique = np.unique(masks_sele)
-    
-    return probs_sele, masks_sele, out_float_sele, M_unique
 
 @nb.njit()
 def compute_channel_stats_per_mask(masks_sele, M, probs_sele, vals, temp):
@@ -114,6 +104,9 @@ def compute_nested_anova(resE, score, group, nested_col):
     text0 = 'Coef: ' + str(np.round(coef,3)) + '\n95% CI: [' + str(np.round(lower,3)) + ',' + str(np.round(upper,3)) + '] \n' + 'p: ' + str(p_scientific)
     
     return text0   
+
+#### Add meta-p-values function
+
 
 # @nb.njit(parallel=True)
 # def get_expectations(M_unique, masks_sele, probs_sele, vals_sele, E, V, N):
