@@ -141,38 +141,38 @@ def return_results(path_to_sbatch_file, prefix):
     
     return all_mat, all_masks, Nzi_per_job, cells_per_job, zi_per_job, probs, randID
 
-# def return_non_unique_indices(df):
-#     """
-#     Identify and print non-unique indices in the columns of a DataFrame.
+def return_non_unique_indices(df):
+    """
+    Identify and print non-unique indices in the columns of a DataFrame.
 
-#     Parameters:
-#     - df: pandas DataFrame
-#         The DataFrame containing the data.
+    Parameters:
+    - df: pandas DataFrame
+        The DataFrame containing the data.
 
-#     Returns:
-#     - temp: pandas DataFrame
-#         A DataFrame with unique values for each column.
+    Returns:
+    - temp: pandas DataFrame
+        A DataFrame with unique values for each column.
 
-#     This function iterates through the columns of the input DataFrame and prints the column names
-#     where non-unique indices are found. It returns a DataFrame with unique values for each column.
+    This function iterates through the columns of the input DataFrame and prints the column names
+    where non-unique indices are found. It returns a DataFrame with unique values for each column.
 
-#     Example:
-#     return_non_unique_indices(my_dataframe)
-#     """
-#     res = []
-#     names = []
-#     for col in df.columns:
-#         try:
-#             r = df[col].unique()
-#         except TypeError:
-#             r = np.unique([str(x) for x in df[col]])
-#         res.append(r)
-#         names.append(col)
-#     temp = pd.DataFrame(res)
-#     temp.index = names
-#     non_unique_indices = temp.index[np.argwhere(np.array([np.sum([x!=None for x in temp.iloc[y]]) for y in range(temp.shape[0])])>1).reshape(-1)]
-#     print('\n'.join(non_unique_indices))
-#     return temp
+    Example:
+    return_non_unique_indices(my_dataframe)
+    """
+    res = []
+    names = []
+    for col in df.columns:
+        try:
+            r = df[col].unique()
+        except TypeError:
+            r = np.unique([str(x) for x in df[col]])
+        res.append(r)
+        names.append(col)
+    temp = pd.DataFrame(res)
+    temp.index = names
+    non_unique_indices = temp.index[np.argwhere(np.array([np.sum([x!=None for x in temp.iloc[y]]) for y in range(temp.shape[0])])>1).reshape(-1)]
+    print('\n'.join(non_unique_indices))
+    return temp
 
 def print_metadata(path_to_czi):
     """
