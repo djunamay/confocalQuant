@@ -47,59 +47,59 @@ def print_readme(path_to_readme):
         contents = file.read()
         print(contents)
     
-def parse_dict(arg):
-    """
-    Parse a string representation of a dictionary into a Python dictionary.
+# def parse_dict(arg):
+#     """
+#     Parse a string representation of a dictionary into a Python dictionary.
 
-    Parameters:
-    - arg (str): A string representation of a dictionary.
+#     Parameters:
+#     - arg (str): A string representation of a dictionary.
 
-    Returns:
-    - dict: The parsed dictionary.
+#     Returns:
+#     - dict: The parsed dictionary.
 
-    Raises:
-    - argparse.ArgumentTypeError: If the provided string is not a valid dictionary format.
+#     Raises:
+#     - argparse.ArgumentTypeError: If the provided string is not a valid dictionary format.
 
-    This function uses the ast.literal_eval method to safely evaluate the string as a Python
-    literal expression, attempting to convert it into a dictionary. If the provided string is
-    not a valid dictionary format, it raises an argparse.ArgumentTypeError with an informative
-    error message.
-    """
-    try:
-        # Safely evaluate the string as a Python literal expression
-        return ast.literal_eval(arg)
-    except (SyntaxError, ValueError) as e:
-        raise argparse.ArgumentTypeError(f"Invalid dictionary format: {arg}")
+#     This function uses the ast.literal_eval method to safely evaluate the string as a Python
+#     literal expression, attempting to convert it into a dictionary. If the provided string is
+#     not a valid dictionary format, it raises an argparse.ArgumentTypeError with an informative
+#     error message.
+#     """
+#     try:
+#         # Safely evaluate the string as a Python literal expression
+#         return ast.literal_eval(arg)
+#     except (SyntaxError, ValueError) as e:
+#         raise argparse.ArgumentTypeError(f"Invalid dictionary format: {arg}")
 
         
-def get_id_data(ID, zi_per_job, Nzi, mat, masks):
-    """
-    Extract data and masks corresponding to a specific ID.
+# def get_id_data(ID, zi_per_job, Nzi, mat, masks):
+#     """
+#     Extract data and masks corresponding to a specific ID.
 
-    Parameters:
-    - ID: int
-        The identifier for the specific data subset.
-    - zi_per_job: int
-        The number of z-planes per job.
-    - Nzi: List[Tuple[int]]
-        List containing information about the number of z-planes for each ID.
-    - mat: np.ndarray
-        The original data matrix.
-    - masks: np.ndarray
-        The masks corresponding to the data.
+#     Parameters:
+#     - ID: int
+#         The identifier for the specific data subset.
+#     - zi_per_job: int
+#         The number of z-planes per job.
+#     - Nzi: List[Tuple[int]]
+#         List containing information about the number of z-planes for each ID.
+#     - mat: np.ndarray
+#         The original data matrix.
+#     - masks: np.ndarray
+#         The masks corresponding to the data.
 
-    Returns:
-    - Tuple[np.ndarray, np.ndarray]
-        A tuple containing the extracted data matrix and masks.
+#     Returns:
+#     - Tuple[np.ndarray, np.ndarray]
+#         A tuple containing the extracted data matrix and masks.
 
-    This function calculates the start and end indices based on the provided ID, zi_per_job, and Nzi,
-    then extracts the corresponding subset of data and masks and returns them as a tuple.
-    """
-    start = ID*zi_per_job
-    end = start + Nzi[ID][0]
-    mat_sele = mat[start:end]
-    mask_sele = masks[start:end]
-    return mat_sele.copy(), mask_sele.copy()
+#     This function calculates the start and end indices based on the provided ID, zi_per_job, and Nzi,
+#     then extracts the corresponding subset of data and masks and returns them as a tuple.
+#     """
+#     start = ID*zi_per_job
+#     end = start + Nzi[ID][0]
+#     mat_sele = mat[start:end]
+#     mask_sele = masks[start:end]
+#     return mat_sele.copy(), mask_sele.copy()
 
 
 def return_results(path_to_sbatch_file, prefix):
@@ -141,38 +141,38 @@ def return_results(path_to_sbatch_file, prefix):
     
     return all_mat, all_masks, Nzi_per_job, cells_per_job, zi_per_job, probs, randID
 
-def return_non_unique_indices(df):
-    """
-    Identify and print non-unique indices in the columns of a DataFrame.
+# def return_non_unique_indices(df):
+#     """
+#     Identify and print non-unique indices in the columns of a DataFrame.
 
-    Parameters:
-    - df: pandas DataFrame
-        The DataFrame containing the data.
+#     Parameters:
+#     - df: pandas DataFrame
+#         The DataFrame containing the data.
 
-    Returns:
-    - temp: pandas DataFrame
-        A DataFrame with unique values for each column.
+#     Returns:
+#     - temp: pandas DataFrame
+#         A DataFrame with unique values for each column.
 
-    This function iterates through the columns of the input DataFrame and prints the column names
-    where non-unique indices are found. It returns a DataFrame with unique values for each column.
+#     This function iterates through the columns of the input DataFrame and prints the column names
+#     where non-unique indices are found. It returns a DataFrame with unique values for each column.
 
-    Example:
-    return_non_unique_indices(my_dataframe)
-    """
-    res = []
-    names = []
-    for col in df.columns:
-        try:
-            r = df[col].unique()
-        except TypeError:
-            r = np.unique([str(x) for x in df[col]])
-        res.append(r)
-        names.append(col)
-    temp = pd.DataFrame(res)
-    temp.index = names
-    non_unique_indices = temp.index[np.argwhere(np.array([np.sum([x!=None for x in temp.iloc[y]]) for y in range(temp.shape[0])])>1).reshape(-1)]
-    print('\n'.join(non_unique_indices))
-    return temp
+#     Example:
+#     return_non_unique_indices(my_dataframe)
+#     """
+#     res = []
+#     names = []
+#     for col in df.columns:
+#         try:
+#             r = df[col].unique()
+#         except TypeError:
+#             r = np.unique([str(x) for x in df[col]])
+#         res.append(r)
+#         names.append(col)
+#     temp = pd.DataFrame(res)
+#     temp.index = names
+#     non_unique_indices = temp.index[np.argwhere(np.array([np.sum([x!=None for x in temp.iloc[y]]) for y in range(temp.shape[0])])>1).reshape(-1)]
+#     print('\n'.join(non_unique_indices))
+#     return temp
 
 def print_metadata(path_to_czi):
     """
