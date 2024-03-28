@@ -2,37 +2,14 @@
 Run tests
 '''
 
-def test_convert_genotypes_to_str():
-    """
-    Testing function that converts ndarray genotype to string
-        - Comparing manually-determined solution to function output for a simple example
-    """
-    l = [[0,1], [1,1]]
-    g = convert_genotypes_to_str(l)
-    
-    assert_that(g[0]).is_equal_to('0/1').is_true()
-    assert_that(g[1]).is_equal_to('1/1').is_true()
+from assertpy import assert_that
+from aicsimageio import AICSImage
+import numpy as np
 
-def test_return_genotype_counts():
-    """
-    Testing function that returns genotype counts
-        - Comparing manually-determined solution to function output for a simple example
-    """
-    
-    l = [[[0,1], [1,1], [0,0]], [[0,0], [0,0], [1,1]]]
-    g = [convert_genotypes_to_str(i) for i in l]
-    df = pd.DataFrame(g)
-    cts = return_genotype_counts(df)
-    n_samples = df.shape[1]
-    n_genotypes = np.sum(cts, axis = 1)
-    assert_that(np.unique(n_genotypes==n_samples)[0]).is_true()
-
-def test_compute_MAFs():
-    
-from confocalQuant.segmentation load_3D, int_to_float, get_anisotropy, do_inference, sigmoid, impose_segmentations
+from confocalQuant.segmentation import load_3D, int_to_float, get_anisotropy, do_inference, sigmoid, impose_segmentations
 from confocalQuant.image import save_mean_proj
 from confocalQuant.qc import get_metadata, return_non_unique_indices, get_day_and_time, return_channel_moments_per_im
-from confocalQuant.datahandling import get_meta_vectors, return_results, load_im_from_memmap, load_im_from_memmap_ravel
+from confocalQuant.data_handling import get_meta_vectors, return_results, load_im_from_memmap, load_im_from_memmap_ravel
 from confocalQuant.stats import compute_per_cell_stats, compute_nested_anova
 from confocalQuant.plotting import plot_boxplot_by_treatment, plot_treatments, plot_lines
 #process_image (main)
@@ -40,51 +17,71 @@ from confocalQuant.plotting import plot_boxplot_by_treatment, plot_treatments, p
 # segmentation
 
 def test_load_3D():
+    img = AICSImage('./tests/test.czi')
 
-def test_int_to_float():
+    # check datatype
+    out = load_3D(img, [0,1,2,3])
+    assert_that(out.dtype==img.dtype).is_true()
+
+    # check loading in default order
+    assert_that(np.array_equal(img.get_image_data("ZXY", C=0), out[:,:,:,0])).is_true()
+    assert_that(np.array_equal(img.get_image_data("ZXY", C=2), out[:,:,:,2])).is_true()
+
+    # check loading in other order
+    out = load_3D(img, [0,3,2,1])
+    assert_that(np.array_equal(img.get_image_data("ZXY", C=3), out[:,:,:,1])).is_true()
+    assert_that(np.array_equal(img.get_image_data("ZXY", C=1), out[:,:,:,3])).is_true()
+
+
+
+# def test_do_inference():
+#### need to have a couple of sanity checks; masks should be stitched etc
+
     
-def test_get_anisotropy():
+# def test_impose_segmentations():
     
-def test_do_inference():
+# # image 
+
+# def test_save_mean_proj():
     
-def test_sigmoid():
+# # qc 
+
+# def test_get_metadata():
     
-def test_impose_segmentations():
+# def test_return_non_unique_indices():
     
-# image 
+# def test_get_day_and_time():
 
-def test_save_mean_proj():
+# def test_return_channel_moments_per_im():
+
+# # datahandling
+
+# def test_get_meta_vectors():
+
+# def test_return_results():
+
+# def test_load_im_from_memmap():
+#### check that it's the same as loading the original image
     
-# qc 
-
-def test_get_metadata():
+# def test_load_im_from_memmap_ravel():
     
-def test_return_non_unique_indices():
+# # stats
+
+# def test_compute_per_cell_stats():
+
+# def test_compute_nested_anova():
+
+# # plotting 
+
+# def test_plot_boxplot_by_treatment():
     
-def test_get_day_and_time():
+# def test_plot_treatments():
 
-def test_return_channel_moments_per_im():
+# def test_plot_lines():
 
-# datahandling
 
-def test_get_meta_vectors():
 
-def test_return_results():
-
-def test_load_im_from_memmap():
-    
-def test_load_im_from_memmap_ravel():
-    
-# stats
-
-def test_compute_per_cell_stats():
-
-def test_compute_nested_anova():
-
-# plotting 
-
-def test_plot_boxplot_by_treatment():
-    
-def test_plot_treatments():
-
-def test_plot_lines():
+######## nothing to test
+# def test_int_to_float():
+# def test_get_anisotropy():
+# def test_sigmoid():
