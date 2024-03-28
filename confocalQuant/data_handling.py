@@ -47,29 +47,29 @@ def print_readme(path_to_readme):
         contents = file.read()
         print(contents)
     
-# def parse_dict(arg):
-#     """
-#     Parse a string representation of a dictionary into a Python dictionary.
+def parse_dict(arg):
+    """
+    Parse a string representation of a dictionary into a Python dictionary.
 
-#     Parameters:
-#     - arg (str): A string representation of a dictionary.
+    Parameters:
+    - arg (str): A string representation of a dictionary.
 
-#     Returns:
-#     - dict: The parsed dictionary.
+    Returns:
+    - dict: The parsed dictionary.
 
-#     Raises:
-#     - argparse.ArgumentTypeError: If the provided string is not a valid dictionary format.
+    Raises:
+    - argparse.ArgumentTypeError: If the provided string is not a valid dictionary format.
 
-#     This function uses the ast.literal_eval method to safely evaluate the string as a Python
-#     literal expression, attempting to convert it into a dictionary. If the provided string is
-#     not a valid dictionary format, it raises an argparse.ArgumentTypeError with an informative
-#     error message.
-#     """
-#     try:
-#         # Safely evaluate the string as a Python literal expression
-#         return ast.literal_eval(arg)
-#     except (SyntaxError, ValueError) as e:
-#         raise argparse.ArgumentTypeError(f"Invalid dictionary format: {arg}")
+    This function uses the ast.literal_eval method to safely evaluate the string as a Python
+    literal expression, attempting to convert it into a dictionary. If the provided string is
+    not a valid dictionary format, it raises an argparse.ArgumentTypeError with an informative
+    error message.
+    """
+    try:
+        # Safely evaluate the string as a Python literal expression
+        return ast.literal_eval(arg)
+    except (SyntaxError, ValueError) as e:
+        raise argparse.ArgumentTypeError(f"Invalid dictionary format: {arg}")
 
         
 # def get_id_data(ID, zi_per_job, Nzi, mat, masks):
