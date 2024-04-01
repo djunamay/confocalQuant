@@ -56,13 +56,33 @@ def test_load_3D():
 
 # # datahandling
 
-# def test_get_meta_vectors():
+def test_get_meta_vectors():
+    in_parent = './tests/'
+    files = ['B02_3.czi', 'C09_1.czi']
+    lines, treat = get_meta_vectors(in_parent, files, '_', '_')
+    lines_true = ['Y622', 'G2']
+    treat_true = ['vehicle', 'vehicle']
+
+    assert_that(lines_true, lines).is_true()
+    assert_that(treat_true, treat).is_true()
+    
+    # test for different spacers
+    files = ['B02-3.czi', 'C09-1.czi']
+    lines, treat = get_meta_vectors(in_parent, files, '_', '-')
+    assert_that(lines_true, lines).is_true()
+    assert_that(treat_true, treat).is_true()
 
 # def test_return_results():
 
-# def test_load_im_from_memmap():
-#### check that it's the same as loading the original image
-    
+def test_load_im_from_memmap():
+    out_parent = './tests/'
+    all_mat, all_masks, Nzi_per_job, cells_per_job, zi_per_job, probs, randID_per_job = return_results(out_parent+'out.sbatch', './tests/')
+    masks, floats = load_im_from_memmap(20, zi_per_job, Nzi_per_job, probs, all_masks, all_mat)
+
+    img = AICSImage(out_parent+'C05_1.czi')
+    x = load_3D(img, [3,2,0,1])
+    assert_that(np.array_equal(int_to_float(x), floats)).is_true()
+
 # def test_load_im_from_memmap_ravel():
     
 # # stats
@@ -79,7 +99,7 @@ def test_load_3D():
 
 # def test_plot_lines():
 
-
+# lastly do "integrative" testing on synthetic data
 
 ######## nothing to test
 # def test_int_to_float():
