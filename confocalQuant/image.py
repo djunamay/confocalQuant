@@ -176,3 +176,9 @@ def get_mean_projections(mat, mask, background_dict, gamma_dict, lower_dict, upp
     for i in range(show_ordered.shape[-1]):
         show_ordered[:,:,i] = show[:,:,order[i]]
     return show_ordered
+
+
+def compute_avs(data, filename, treatment, line, value):
+    mean_per_filename = data.groupby(filename)[value].mean()
+    mean_per_condition = data.groupby([treatment, line])[value].mean()
+    return mean_per_filename, mean_per_condition
