@@ -33,7 +33,7 @@ def load_im_from_memmap(ID, zi_per_job, Nzi_per_job, probs, all_masks, all_mat):
     
     return masks_sele, out_float_sele
 
-def get_meta_vectors(in_parent, files, spacer):
+def get_meta_vectors(in_parent, files, spacer, spacer2):
     meta = pd.read_csv(in_parent + 'temp.csv')
     meta.columns = ['well', 'Treatment']
     meta['line'] = np.array([str(x).split(' ')[0] for x in meta['Treatment']])
@@ -43,8 +43,8 @@ def get_meta_vectors(in_parent, files, spacer):
     dictionary = dict(zip(meta['well'], meta['line']))
     dictionary2 = dict(zip(meta['well'], meta['treatment']))
 
-    lines = np.array([dictionary[x.split(spacer)[0]] for x in files])
-    treat = np.array([dictionary2[x.split(spacer)[0]] for x in files])
+    lines = np.array([dictionary[x.split(spacer2)[0]] for x in files])
+    treat = np.array([dictionary2[x.split(spacer2)[0]] for x in files])
     return lines, treat
 
 def print_failed_jobs(parent):
