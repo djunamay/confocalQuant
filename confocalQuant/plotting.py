@@ -5,9 +5,59 @@ from PIL import Image
 from aicsimageio import AICSImage
 import statsmodels.api as sm
 from statsmodels.formula.api import mixedlm
+from statannotations.Annotator import Annotator
+import pandas as pd
 
 from .stats import compute_nested_anova
 
+def get_batch_values(subset_by_group,subset_to,test_grouping,split,path,batch_ID,value):
+    df = pd.read_csv(path)
+    df['well'] = [x.split(split)[0] for x in df['file']]
+    avg_lipidspot = df.groupby([subset_by_group, test_grouping, 'well'])[value].mean().reset_index(name='av')
+    avg_lipidspot = avg_lipidspot[avg_lipidspot[subset_by_group]==subset_to]
+    avg_lipidspot['scaled'] = (avg_lipidspot['av']-np.mean(avg_lipidspot['av']))/np.std(avg_lipidspot['av'])
+    avg_lipidspot['batch'] = batch_ID
+    return avg_lipidspot
+
+def plot_boxplot_across_batches(subset_by_group,subset_to,test_grouping,split,path,batch_ID,value,colors,colors2,categories):
+    out = [get_batch_values(subset_by_group,subset_to,test_grouping,split[x],path[x],batch_ID[x],value) for x in range(len(path))]
+    temp = pd.concat(out)
+
+    temp_plotting = temp.copy()
+    temp_plotting[test_grouping] = pd.Categorical(temp_plotting[test_grouping], categories=categories, ordered=True)
+
+    temp_plotting.index = range(temp_plotting.shape[0])
+
+    plt.figure(figsize=(2,5))
+    ax = sns.boxplot(data = temp_plotting, x = test_grouping, showfliers=False, y = 'scaled', dodge = True, palette = colors, width=.5, boxprops=dict(alpha=1), medianprops=dict(color='black', alpha=1), whiskerprops=dict(color='black', alpha=1), capprops=dict(color = 'black', alpha=1))
+    sns.stripplot(data=temp_plotting, x=test_grouping, y='scaled',  dodge=True, jitter=True, alpha=.5,  palette = colors2)
+
+    plt.xticks(rotation=45)
+    plt.xlabel('')
+    plt.ylabel('Mean ' + value + ' Intensity (z-scaled)')
+    
+    return temp
+
+def plot_boxplot_by_line(value, treat, df, colors, colors2):
+    
+    avg_lipidspot = df.groupby(['line', 'treatment', 'well'])[value].mean().reset_index(name='av')
+
+    d = avg_lipidspot[avg_lipidspot['treatment']==treat]
+
+    ax = sns.boxplot(data = d, x = 'line', showfliers=False, y = 'av', dodge = True, order = ['E3', 'Y622', 'G2'], palette = colors, width=.5, boxprops=dict(alpha=1), medianprops=dict(color='black', alpha=1), whiskerprops=dict(color='black', alpha=1), capprops=dict(color = 'black', alpha=1))
+    sns.stripplot(data=d, x='line', y='av', palette = colors2, dodge=True, jitter=True, alpha=1,  order = ['E3', 'Y622', 'G2'])
+
+    pairs = [(("E3"), ("Y622")), (("E3"), ("G2"))]  # Define pairs to compare
+    annotator = Annotator(ax, pairs, data=d, x='line', y='av', order = ['E3', 'Y622', 'G2'])
+    annotator.configure(test='t-test_ind', text_format='full', loc='inside', verbose=2, show_test_name=False)
+    
+    annotator.apply_and_annotate()
+    
+    plt.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
+    plt.xticks(rotation=45)
+    plt.ylabel(value)
+    plt.xlabel('')
+    
 def plot_boxplot_by_treatment(value, line, df, colors, colors2):
     
     avg_lipidspot = df.groupby(['line', 'treatment', 'well'])[value].mean().reset_index(name='av')
