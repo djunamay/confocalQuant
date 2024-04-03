@@ -5,8 +5,17 @@ import numba as nb
 from statsmodels.regression.mixed_linear_model import MixedLM
 from statsmodels.formula.api import mixedlm
 from tqdm import tqdm 
+from confocalQuant.data_handling import load_im_from_memmap_ravel
 
 
+import statsmodels.api as sm
+import statsmodels.formula.api as smf
+
+def fit_mixed_model(temp, mod, group):
+    model = smf.mixedlm(mod, data=temp, groups=temp[group])
+    result = model.fit()
+    
+    return result.summary()
 
 @nb.njit()
 def compute_channel_stats_per_mask(masks_sele, M, probs_sele, vals, temp):
@@ -54,7 +63,7 @@ def compute_per_cell_stats(file_ids, zi_per_job, Nzi_per_job, probs, all_masks, 
     all_outs = []
     
     for ID in tqdm(file_ids):
-        probs_sele, masks_sele, out_float_sele, M_unique = load_im(ID, zi_per_job, Nzi_per_job, probs, all_masks, all_mat)
+        probs_sele, masks_sele, out_float_sele, M_unique = load_im_from_memmap_ravel(ID, zi_per_job, Nzi_per_job, probs, all_masks, all_mat)
         nchannels = out_float_sele.shape[-1]
         outputs = np.empty((len(M_unique)-1, nchannels+1))
         nvoxels = np.prod(out_float_sele.shape[:3])
