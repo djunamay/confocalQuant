@@ -1,9 +1,9 @@
 # End-to-end Confocal Image Processing 
-### using pre-trained Cellpose models
+### using pre-trained Cellpose models[^1]
 
 - This repository provides a number of functions for image processing (loading, processing, and segmentation using inference by pre-trained Cellpose[^1] models), viewing (a number of notebook widgets are implemented to facilitate pre-processing and segmentation assessment), and plotting (normalized - intensities per segmented region by experimental category of interest, quantification, and representative images). 
 - `do_inference` function could easily be replaced with other pre-trained models (e.g. [^2], or from other sources)
-- This repository was used to process confocal images related to a project [here](https://github.com/djunamay/ABCA7lof2?tab=readme-ov-file); See use-case example 
+- This repository was used to process confocal images related to a project [here](https://github.com/djunamay/ABCA7lof2?tab=readme-ov-file); See use-case example below
 
 ## Prerequisites
 
@@ -35,6 +35,7 @@ git clone git@github.com:djunamay/confocalQuant.git
 ```
 
 6. Run tests:
+- Download the test data [here](https://osf.io/uqnr7/files/osfstorage#)
 ```bash
 pip install assertpy
 pip install pytest
@@ -53,7 +54,7 @@ python main_script.py --folder path/to/results --impath path/to/image --channels
 
 3. As results are processing, check the `--outdir` folder to monitor segmentation results (projections) as they come in 
 
-4. Finally, go back to the `example_segmentation.ipynb` notebook to view the results, perform some simple sanity checks, and plot signal intensity quantifications for segmented regions.
+4. Finally, go back to the `example_segmentation.ipynb` folder to view the results, perform some simple sanity checks, and plot signal intensity quantifications for segmented regions.
 
 
 ## Repository overview
@@ -65,7 +66,6 @@ python main_script.py --folder path/to/results --impath path/to/image --channels
 - `./data/` save raw data here (in ***czi*** file format; example `./data/experiment_1`)
 - `./outs/` outputs of `main_script.py` run will be saved here (including `masks.npy`, `mat.npy`, `Nzi_per_job.npy`, `probs.npy`, `randomID_per_job.npy`; example `./outs/experiment_1_out`)
 - `./confocalQuant/` functions called in `main_script.py` for processing and segmentation and in `example_segmentation.ipynb` for viewing and plotting
-- `./notebooks/`
 
 ## Example Use-Case
 
