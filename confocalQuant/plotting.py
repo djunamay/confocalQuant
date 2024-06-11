@@ -49,7 +49,7 @@ def plot_boxplot_by_line(value, treat, df, colors, colors2):
 
     pairs = [(("E3"), ("Y622")), (("E3"), ("G2"))]  # Define pairs to compare
     annotator = Annotator(ax, pairs, data=d, x='line', y='av', order = ['E3', 'Y622', 'G2'])
-    annotator.configure(test='t-test_ind', text_format='full', loc='inside', verbose=2, show_test_name=False)
+    annotator.configure(test='t-test_ind', text_format='full', loc='outside', verbose=2, show_test_name=False)
     
     annotator.apply_and_annotate()
     

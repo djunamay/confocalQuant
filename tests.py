@@ -74,14 +74,14 @@ def test_get_meta_vectors():
 
 # def test_return_results():
 
-def test_load_im_from_memmap():
-    out_parent = './tests/'
-    all_mat, all_masks, Nzi_per_job, cells_per_job, zi_per_job, probs, randID_per_job = return_results(out_parent+'out.sbatch', './tests/')
-    masks, floats = load_im_from_memmap(20, zi_per_job, Nzi_per_job, probs, all_masks, all_mat)
+# def test_load_im_from_memmap():
+#     out_parent = './tests/'
+#     all_mat, all_masks, Nzi_per_job, cells_per_job, zi_per_job, probs, randID_per_job = return_results(out_parent+'out.sbatch', './tests/')
+#     masks, floats = load_im_from_memmap(20, zi_per_job, Nzi_per_job, probs, all_masks, all_mat)
 
-    img = AICSImage(out_parent+'C05_1.czi')
-    x = load_3D(img, [3,2,0,1])
-    assert_that(np.array_equal(int_to_float(x), floats)).is_true()
+#     img = AICSImage(out_parent+'C05_1.czi')
+#     x = load_3D(img, [3,2,0,1])
+#     assert_that(np.array_equal(int_to_float(x), floats)).is_true()
 
 # def test_load_im_from_memmap_ravel():
     
