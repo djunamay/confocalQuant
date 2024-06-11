@@ -3,6 +3,7 @@
 
 - This repository provides a number of functions for image processing (loading, processing, and segmentation using inference by pre-trained Cellpose[^1] models), viewing (a number of notebook widgets are implemented to facilitate pre-processing and segmentation assessment), and plotting (normalized - intensities per segmented region by experimental category of interest, quantification, and representative images). 
 - `do_inference` function could easily be replaced with other pre-trained models (e.g. [^2], or from other sources)
+- This repository was used to process confocal images related to a project [here](https://github.com/djunamay/ABCA7lof2?tab=readme-ov-file); See use-case example 
 
 ## Prerequisites
 
@@ -30,7 +31,7 @@ model = models.Cellpose(model_type='cyto2')
 
 5. Install repo:
 ```bash
-git clone
+git clone git@github.com:djunamay/confocalQuant.git
 ```
 
 6. Run tests:
@@ -50,7 +51,7 @@ python -m pytest tests.py
 python main_script.py --folder path/to/results --impath path/to/image --channels 0 1 2 --y_channel 0 --kernel 3 --bgrnd_subtraction_vals 10 20 30 --diameter 50 --inf_channels 0 1 --min_size 100 --Ncells 500 --cells_per_job 50 --NZi 10 --zi_per_job 2 --xi_per_job 512 --yi_per_job 512 --Njobs 10 --gamma_dict {0: 1.0, 1: 1.2} --lower_thresh_dict {0: 10, 1: 20} --upper_thresh_dict {0: 90, 1: 95} --outdir path/to/output --preprocess --normalize
 ```
 
-3. As results are processing, check the `--outdir` folder to monitor segmentation results (projections) as they come in #TODO: update this to be the projection of the segmentations, not projection, then segmentations
+3. As results are processing, check the `--outdir` folder to monitor segmentation results (projections) as they come in 
 
 4. Finally, go back to the `example_segmentation.ipynb` notebook to view the results, perform some simple sanity checks, and plot signal intensity quantifications for segmented regions.
 
@@ -64,7 +65,24 @@ python main_script.py --folder path/to/results --impath path/to/image --channels
 - `./data/` save raw data here (in ***czi*** file format; example `./data/experiment_1`)
 - `./outs/` outputs of `main_script.py` run will be saved here (including `masks.npy`, `mat.npy`, `Nzi_per_job.npy`, `probs.npy`, `randomID_per_job.npy`; example `./outs/experiment_1_out`)
 - `./confocalQuant/` functions called in `main_script.py` for processing and segmentation and in `example_segmentation.ipynb` for viewing and plotting
+- `./notebooks/`
 
+## Example Use-Case
+
+- This code was used to process images associated with our project [here](https://github.com/djunamay/ABCA7lof2?tab=readme-ov-file)
+- Image data for this example is available [here](https://osf.io/vn7w2/). Download the imaging data and place it in the `./data/` directory
+- Create sub-folders in the `./outs/` directory, based on the raw data folders downloaded (e.g. `./outs/neuronbatch11082023_mitohealth_out`)
+- For each experiment place the corresponding `out.sbatch` file into its corresponding `./outs/` sub-directory (e.g. `out_neuronbatch11082023_mitohealth.sbatch` into `./outs/neuronbatch11082023_mitohealth_out`
+- Modify the `.sbatch` to work with your scheduler as indicated in the file
+- Create a  `segmentations` folder within each `./outs/` sub-directory
+- To run an experiment, navigate into the corresponding `./data/` sub-directory and run 
+```bash
+sbatch out_[...].sbatch
+```
+- Download the data analysis & plotting notebooks from [here](https://osf.io/vn7w2/) and place them in the `./notebooks/` directory
+- The `individual_quantifications_[..].ipynb` notebooks take as input the outputs from the `out_[...].sbatch` run and allow you to (1) perform sanity checks on the imaging batch, (2) toggle through images (blinded / randomly) to evaluate segmentations, and (3) Compute per-cell mean fluorescent intensities for channels of interest 
+- The `combined_quantifications_[..].ipynb` notebooks take as input the outputs from `individual_quantifications_[..].ipynb` and allow combined analyses across multiple batches
+- The `rep_images_[..].ipynb` notebooks allow you to identify and visualize representative images
 
 ## References
 [^1]: @article{Stringer2020,
