@@ -73,7 +73,7 @@ python main_script.py --folder path/to/results --impath path/to/image --channels
 - Image data for this example is available [here](https://osf.io/vn7w2/). Download the imaging data and place it in the `./data/` directory
 - Create sub-folders in the `./outs/` directory, based on the raw data folders downloaded (e.g. `./outs/neuronbatch11082023_mitohealth_out`)
 - For each experiment place the corresponding `out.sbatch` file into its corresponding `./outs/` sub-directory (e.g. `out_neuronbatch11082023_mitohealth.sbatch` into `./outs/neuronbatch11082023_mitohealth_out`
-- Modify the `.sbatch` to work with your scheduler as indicated in the file
+- Modify the `.sbatch` to work with your scheduler, paths, folder names as indicated (`# Update`) in the file
 - Create a  `segmentations` folder within each `./outs/` sub-directory
 - To run an experiment, navigate into the corresponding `./data/` sub-directory and run 
 ```bash
@@ -81,7 +81,7 @@ sbatch out_[...].sbatch
 ```
 - Download the data analysis & plotting notebooks from [here](https://osf.io/vn7w2/) and place them in the `./notebooks/` directory
 - The `individual_quantifications_[..].ipynb` notebooks take as input the outputs from the `out_[...].sbatch` run and allow you to (1) perform sanity checks on the imaging batch, (2) toggle through images (blinded / randomly) to evaluate segmentations, and (3) Compute per-cell mean fluorescent intensities for channels of interest 
-- The `combined_quantifications_[..].ipynb` notebooks take as input the outputs from `individual_quantifications_[..].ipynb` and allow combined analyses across multiple batches
+- The `combined_quantifications_[..].ipynb` notebooks take as input the outputs from `individual_quantifications_[..].ipynb` (or download these [here](https://osf.io/uqnr7/files/osfstorage)) and allow combined analyses and plotting across multiple batches
 - The `rep_images_[..].ipynb` notebooks allow you to identify and visualize representative images
 
 ## References
