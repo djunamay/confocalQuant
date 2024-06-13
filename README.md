@@ -43,6 +43,8 @@ python -m pytest tests.py
 ```
 
 ## Quickstart
+![Alt text](img.png)
+
 
 1. The `example_[...].ipynb` notebooks will help you run a couple of quick experiments on your data to find segmentation parameters that work for you with your selected Cellpose model. 
 
