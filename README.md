@@ -1,6 +1,8 @@
 # End-to-end Confocal Image Processing 
 ### using pre-trained Cellpose models[^1]
 
+![Alt text](img.png)
+
 - This repository provides a number of functions for image processing (loading, processing, and segmentation using inference by pre-trained Cellpose[^1] models), viewing (a number of notebook widgets are implemented to facilitate pre-processing and segmentation assessment), and plotting (normalized - intensities per segmented region by experimental category of interest, quantification, and representative images). 
 - `do_inference` function could easily be replaced with other pre-trained models (e.g. [^2], or from other sources)
 - This repository was used to process confocal images related to a project [here](https://github.com/djunamay/ABCA7lof2?tab=readme-ov-file); See use-case example below
@@ -43,8 +45,6 @@ python -m pytest tests.py
 ```
 
 ## Quickstart
-![Alt text](img.png)
-
 
 1. The `example_[...].ipynb` notebooks will help you run a couple of quick experiments on your data to find segmentation parameters that work for you with your selected Cellpose model. 
 
@@ -58,6 +58,9 @@ python main_script.py --folder path/to/results --impath path/to/image --channels
 
 4. Finally, go back to the `example_[...].ipynb` notebooks to view the results, perform some simple sanity checks, and plot signal intensity quantifications for segmented regions.
 
+## Methods
+
+For methods on how we applied the Cellpose models, see our [paper](https://github.com/djunamay/ABCA7lof2). 
 
 ## Repository overview
 
