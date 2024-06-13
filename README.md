@@ -44,7 +44,7 @@ python -m pytest tests.py
 
 ## Quickstart
 
-1. The `example_segmentation.ipynb` notebook will help you run a couple of quick experiments on your data to find segmentation parameters that work for you with your selected Cellpose model. 
+1. The `example_[...].ipynb` notebooks will help you run a couple of quick experiments on your data to find segmentation parameters that work for you with your selected Cellpose model. 
 
 2. Once you have identified parameters that work for your segmentation purposes, you can update the following line of code and run that in your terminal or update the `run_jobs.sh` file to submit to a job scheduler and process multiple images in parallel. 
 
@@ -54,7 +54,7 @@ python main_script.py --folder path/to/results --impath path/to/image --channels
 
 3. As results are processing, check the `--outdir` folder to monitor segmentation results (projections) as they come in 
 
-4. Finally, go back to the `example_segmentation.ipynb` folder to view the results, perform some simple sanity checks, and plot signal intensity quantifications for segmented regions.
+4. Finally, go back to the `example_[...].ipynb` notebooks to view the results, perform some simple sanity checks, and plot signal intensity quantifications for segmented regions.
 
 
 ## Repository overview
