@@ -37,7 +37,7 @@ git clone git@github.com:djunamay/confocalQuant.git
 ```
 
 6. Run tests:
-- Download the test data [here](https://osf.io/uqnr7/files/osfstorage#)
+- Download the test data on [Figshare](https://osf.io/uqnr7/files/osfstorage#)
 ```bash
 pip install assertpy
 pip install pytest
@@ -46,7 +46,7 @@ python -m pytest tests.py
 
 ## Quickstart
 
-1. The `example_[...].ipynb` notebooks will help you run a couple of quick experiments on your data to find segmentation parameters that work for you with your selected Cellpose model. 
+1. The `example_[...].ipynb` notebooks will help you run a couple of quick experiments on your data to find segmentation parameters that work for you with your selected Cellpose model (data for the example notebooks are available through [Figshare](). 
 
 2. Once you have identified parameters that work for your segmentation purposes, you can update the following line of code and run that in your terminal or update the `run_jobs.sh` file to submit to a job scheduler and process multiple images in parallel. 
 
@@ -84,9 +84,9 @@ For methods on how we applied the Cellpose models, see our [paper](https://githu
 ```bash
 sbatch out_[...].sbatch
 ```
-- Download the data analysis & plotting notebooks from [here](https://osf.io/vn7w2/) and place them in the `./notebooks/` directory
+- Download the data analysis & plotting notebooks from [figshare](https://osf.io/vn7w2/) and place them in the `./notebooks/` directory
 - The `individual_quantifications_[..].ipynb` notebooks take as input the outputs from the `out_[...].sbatch` run and allow you to (1) perform sanity checks on the imaging batch, (2) toggle through images (blinded / randomly) to evaluate segmentations, and (3) Compute per-cell mean fluorescent intensities for channels of interest 
-- The `combined_quantifications_[..].ipynb` notebooks take as input the outputs from `individual_quantifications_[..].ipynb` (or download these [here](https://osf.io/uqnr7/files/osfstorage)) and allow combined analyses and plotting across multiple batches
+- The `combined_quantifications_[..].ipynb` notebooks take as input the outputs from `individual_quantifications_[..].ipynb` (or download these from [figshare](https://osf.io/uqnr7/files/osfstorage)) and allow combined analyses and plotting across multiple batches
 - The `rep_images_[..].ipynb` notebooks allow you to identify and visualize representative images
 
 ## References
