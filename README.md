@@ -46,7 +46,7 @@ python -m pytest tests.py
 
 ## Quickstart
 
-1. The `example_[...].ipynb` notebooks will help you run a couple of quick experiments on your data to find segmentation parameters that work for you with your selected Cellpose model (data for the example notebooks are available through [Figshare](). 
+1. The `example_[...].ipynb` notebooks will help you run a couple of quick experiments on your data to find segmentation parameters that work for you with your selected Cellpose model (see `Example Use-Case section` for instructions on downloading data to run with the example notebooks). 
 
 2. Once you have identified parameters that work for your segmentation purposes, you can update the following line of code and run that in your terminal or update the `run_jobs.sh` file to submit to a job scheduler and process multiple images in parallel. 
 
@@ -64,7 +64,7 @@ For methods on how we applied the Cellpose models, see our [paper](https://githu
 
 ## Repository overview
 
-- `example_segmentation.ipynb` notebook guiding user through the pipeline
+- `example_[...].ipynb` notebooks guiding user through the pipeline
 - `main.py` performs image processing and segmentation with user-defined parameters
 - `run_jobs.sh` example file for submission with job scheduler 
 - `./models/` save ***cellpose** models here
