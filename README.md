@@ -37,7 +37,7 @@ git clone git@github.com:djunamay/confocalQuant.git
 ```
 
 6. Run tests:
-- Download the test data on [Figshare](https://osf.io/uqnr7/files/osfstorage#)
+- Download the test data on [Figshare](https://figshare.com/s/dc1ee3477747549da376)
 ```bash
 pip install assertpy
 pip install pytest
@@ -74,19 +74,19 @@ For methods on how we applied the Cellpose models, see our [paper](https://githu
 
 ## Example Use-Case
 
-- This code was used to process images associated with our project [here](https://github.com/djunamay/ABCA7lof2?tab=readme-ov-file)
-- Image data for this example is available [here](https://osf.io/vn7w2/). Download the imaging data and place it in the `./data/` directory
+- This code was used to process images associated with our [Github Repository](https://github.com/djunamay/ABCA7lof2?tab=readme-ov-file)
+- Raw image data for this example is available on [figshare]() (coming soon). Download the imaging data and place it in the `./data/` directory
 - Create sub-folders in the `./outs/` directory, based on the raw data folders downloaded (e.g. `./outs/neuronbatch11082023_mitohealth_out`)
-- For each experiment place the corresponding `out.sbatch` file into its corresponding `./outs/` sub-directory (e.g. `out_neuronbatch11082023_mitohealth.sbatch` into `./outs/neuronbatch11082023_mitohealth_out`
+- For each experiment place the corresponding `out.sbatch` file into its corresponding `./outs/` sub-directory (e.g. `out_neuronbatch11082023_mitohealth.sbatch` into `./outs/neuronbatch11082023_mitohealth_out`, available from [figshare](https://figshare.com/s/71fcf19eb8b67c3c0bff)
 - Modify the `.sbatch` to work with your scheduler, paths, folder names as indicated (`# Update`) in the file
 - Create a  `segmentations` folder within each `./outs/` sub-directory
 - To run an experiment, navigate into the corresponding `./data/` sub-directory and run 
 ```bash
 sbatch out_[...].sbatch
 ```
-- Download the data analysis & plotting notebooks from [figshare](https://osf.io/vn7w2/) and place them in the `./notebooks/` directory
+- Download the data analysis & plotting notebooks from [figshare](https://figshare.com/s/43fddaa74fafdaa85e20) and place them in the `./notebooks/` directory
 - The `individual_quantifications_[..].ipynb` notebooks take as input the outputs from the `out_[...].sbatch` run and allow you to (1) perform sanity checks on the imaging batch, (2) toggle through images (blinded / randomly) to evaluate segmentations, and (3) Compute per-cell mean fluorescent intensities for channels of interest 
-- The `combined_quantifications_[..].ipynb` notebooks take as input the outputs from `individual_quantifications_[..].ipynb` (or download these from [figshare](https://osf.io/uqnr7/files/osfstorage)) and allow combined analyses and plotting across multiple batches
+- The `combined_quantifications_[..].ipynb` notebooks take as input the processed data outputs from `individual_quantifications_[..].ipynb` (or download these inputs from [figshare](https://figshare.com/s/0ea2ed2fa837962c7702)) and allow combined analyses and plotting across multiple batches
 - The `rep_images_[..].ipynb` notebooks allow you to identify and visualize representative images
 
 ## References
